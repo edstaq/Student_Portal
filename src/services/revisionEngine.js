@@ -71,19 +71,27 @@ export function computeRevisions(classesList = []) {
   today.setHours(0, 0, 0, 0);
 
   const revisions = [];
+  const seenIds = new Set();
 
   const completedClasses = classesList.filter(
     c => c.status && c.status.toLowerCase() === 'completed'
   );
 
+  const upcomingClasses = classesList.filter(
+    c => !c.status || (c.status.toLowerCase() !== 'completed' && !c.status.toLowerCase().includes('cancel'))
+  );
+
+  // 1-4-7 Spaced Repetition Intervals (plus Day 14 for extended retention)
   const intervals = [
-    { dayOffset: 1, label: 'Revision', name: 'Review Session', badgeClass: 'day-1' },
-    { dayOffset: 4, label: 'Revision', name: 'Practice Review', badgeClass: 'day-4' },
-    { dayOffset: 7, label: 'Revision', name: 'Follow-up Review', badgeClass: 'day-7' }
+    { dayOffset: 1, label: 'Revision', name: 'Recall Review (Day 1)', badgeClass: 'day-1' },
+    { dayOffset: 4, label: 'Revision', name: 'Practice Review (Day 4)', badgeClass: 'day-4' },
+    { dayOffset: 7, label: 'Revision', name: 'Mastery Review (Day 7)', badgeClass: 'day-7' },
+    { dayOffset: 14, label: 'Revision', name: 'Retention Review (Day 14)', badgeClass: 'day-7' }
   ];
 
+  // 1. Compute 1-4-7 spaced repetition milestones for completed classes
   completedClasses.forEach(cls => {
-    const classDate = parseDate(cls.date);
+    const classDate = parseDate(cls.date || cls.classDate);
     if (!classDate) return;
 
     intervals.forEach(inv => {
@@ -113,21 +121,85 @@ export function computeRevisions(classesList = []) {
         statusLabel = `In ${diffDays}d`;
       }
 
+      const revId = `rev-${cls.sessionId || cls.classRoomId || cls.date}-day${inv.dayOffset}`;
+      if (!seenIds.has(revId)) {
+        seenIds.add(revId);
+        revisions.push({
+          id: revId,
+          sessionId: cls.sessionId,
+          classRoomId: cls.classRoomId,
+          subjectName: cls.subjectName || 'General',
+          subjectLabel: cls.subjectLabel || cls.subjectName || 'Class',
+          topicCovered: cls.topicCovered || 'Topic revision',
+          teacherName: cls.teacherName || 'Instructor',
+          classDate: cls.date || cls.classDate,
+          classDateObj: classDate,
+          milestoneDate,
+          milestoneDateFormatted: formatDate(milestoneDate),
+          intervalLabel: inv.label,
+          intervalName: inv.name,
+          badgeClass: inv.badgeClass,
+          diffDays,
+          status,
+          statusLabel,
+          urgency,
+          isDueToday: diffDays === 0,
+          isOverdue: diffDays < 0,
+          isUpcoming: diffDays > 0,
+          rawClass: cls
+        });
+      }
+    });
+  });
+
+  // 2. Also include scheduled upcoming classes and sessions for today
+  upcomingClasses.forEach(cls => {
+    const classDate = parseDate(cls.date || cls.classDate);
+    if (!classDate) return;
+
+    const diffTime = classDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    let status = '';
+    let urgency = 'low';
+    let statusLabel = '';
+
+    if (diffDays === 0) {
+      status = 'Due Today';
+      urgency = 'high';
+      statusLabel = 'Today';
+    } else if (diffDays < 0) {
+      status = 'Past Session';
+      urgency = 'low';
+      statusLabel = `${Math.abs(diffDays)}d ago`;
+    } else if (diffDays === 1) {
+      status = 'Tomorrow';
+      urgency = 'medium';
+      statusLabel = 'Tomorrow';
+    } else {
+      status = `In ${diffDays} days`;
+      urgency = 'low';
+      statusLabel = `In ${diffDays}d`;
+    }
+
+    const schedId = `sched-${cls.sessionId || cls.classRoomId || cls.date || Math.random().toString(36).substring(7)}`;
+    if (!seenIds.has(schedId)) {
+      seenIds.add(schedId);
       revisions.push({
-        id: `rev-${cls.sessionId}-${inv.label}`,
+        id: schedId,
         sessionId: cls.sessionId,
         classRoomId: cls.classRoomId,
         subjectName: cls.subjectName || 'General',
         subjectLabel: cls.subjectLabel || cls.subjectName || 'Class',
-        topicCovered: cls.topicCovered || 'Topic revision',
+        topicCovered: cls.topicCovered || cls.chapterName || 'Live Session',
         teacherName: cls.teacherName || 'Instructor',
-        classDate: cls.date,
+        classDate: cls.date || cls.classDate,
         classDateObj: classDate,
-        milestoneDate,
-        milestoneDateFormatted: formatDate(milestoneDate),
-        intervalLabel: inv.label,
-        intervalName: inv.name,
-        badgeClass: inv.badgeClass,
+        milestoneDate: classDate,
+        milestoneDateFormatted: formatDate(classDate),
+        intervalLabel: diffDays === 0 ? 'Today’s Class' : 'Upcoming Session',
+        intervalName: diffDays === 0 ? 'Live Session Today' : 'Scheduled Class',
+        badgeClass: diffDays === 0 ? 'day-1' : 'day-4',
         diffDays,
         status,
         statusLabel,
@@ -135,9 +207,10 @@ export function computeRevisions(classesList = []) {
         isDueToday: diffDays === 0,
         isOverdue: diffDays < 0,
         isUpcoming: diffDays > 0,
+        isScheduledClass: true,
         rawClass: cls
       });
-    });
+    }
   });
 
   // Sort order:

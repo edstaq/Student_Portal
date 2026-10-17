@@ -66,25 +66,25 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
-  // Cleared Notification IDs (synced per student)
-  const [clearedNotifIds, setClearedNotifIds] = useState(() => {
+  // Cleared Notification IDs (synced per student, cleans legacy IDs)
+  const parseCleanClearedIds = (saved) => {
+    if (!saved) return [];
     try {
-      const activeId = getActiveStudentId();
-      const saved = localStorage.getItem(`edstaq_cleared_notifs_${activeId}`);
-      return saved ? JSON.parse(saved) : [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.filter((id) => !id.endsWith('-Revision')) : [];
     } catch {
       return [];
     }
+  };
+
+  const [clearedNotifIds, setClearedNotifIds] = useState(() => {
+    const activeId = getActiveStudentId();
+    return parseCleanClearedIds(localStorage.getItem(`edstaq_cleared_notifs_${activeId}`));
   });
 
   // Re-sync cleared IDs when student changes
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`edstaq_cleared_notifs_${activeStudentId}`);
-      setClearedNotifIds(saved ? JSON.parse(saved) : []);
-    } catch {
-      setClearedNotifIds([]);
-    }
+    setClearedNotifIds(parseCleanClearedIds(localStorage.getItem(`edstaq_cleared_notifs_${activeStudentId}`)));
   }, [activeStudentId]);
 
   // Clear past/overdue notifications handler (leaves today & upcoming untouched)
@@ -220,30 +220,38 @@ export default function App() {
   // Load student data payload
   const loadData = useCallback(async (studentId) => {
     setIsLoading(true);
-    const result = await fetchStudentData(studentId);
-    setData(result);
+    try {
+      const result = await fetchStudentData(studentId);
+      if (result) {
+        setData(result);
 
-    // Compute 1-4-7 spaced repetition milestones
-    const computed = computeRevisions(result.classes);
-    setRevisions(computed);
+        // Compute 1-4-7 spaced repetition milestones & scheduled classes
+        const computed = computeRevisions(result.classes || []);
+        setRevisions(computed);
 
-    // Load tracked study time
-    setCumulativeStudyTimeSec(getCumulativeStudyTime());
-    setIsLoading(false);
+        // Load tracked study time
+        setCumulativeStudyTimeSec(getCumulativeStudyTime());
 
-    // Build sibling list: students from real database sharing the same guardian contact
-    const siblings = (result.siblings && result.siblings.length > 0)
-      ? result.siblings
-      : (result.profile
-          ? [{
-              studentId: result.profile.studentId || studentId,
-              studentName: result.profile.studentName || studentId,
-              registeredClass: result.profile.registeredClass || ''
-            }]
-          : []);
-    setStudentsList(siblings);
+        // Build sibling list: students from real database sharing the same guardian contact
+        const siblings = (result.siblings && result.siblings.length > 0)
+          ? result.siblings
+          : (result.profile
+              ? [{
+                  studentId: result.profile.studentId || studentId,
+                  studentName: result.profile.studentName || studentId,
+                  registeredClass: result.profile.registeredClass || ''
+                }]
+              : []);
+        setStudentsList(siblings);
 
-    return result;
+        return result;
+      }
+    } catch (err) {
+      console.error('Failed to load student data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+    return null;
   }, []);
 
   // Handle Login success
@@ -281,9 +289,9 @@ export default function App() {
 
     loadData(paramId).then((loadedData) => {
       // Auto-open session modal if deep-link ?session=SESSION_ID is present
-      if (paramSession && loadedData.classes) {
+      if (paramSession && loadedData && loadedData.classes) {
         const matched = loadedData.classes.find(
-          (c) => c.sessionId.toLowerCase() === paramSession.toLowerCase()
+          (c) => c.sessionId && c.sessionId.toLowerCase() === paramSession.toLowerCase()
         );
         if (matched) {
           setSelectedSession(matched);
