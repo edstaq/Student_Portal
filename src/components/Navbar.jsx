@@ -63,7 +63,7 @@ export default function Navbar({
             }}
           >
             <img
-              src="/edstaq-logo.png"
+              src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
               alt="EDSTAQ Logo"
               className="brand-logo-img"
               onError={(e) => {

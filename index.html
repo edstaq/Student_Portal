@@ -2,18 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/edstaq-logo.png" />
+    <link rel="icon" type="image/png" href="./edstaq-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>EDSTAQ Student Portal — Interactive Learning & Progress Dashboard</title>
     <meta name="description" content="EDSTAQ Student Portal - Track daily live classes, 1-4-7 spaced repetition revisions, listening scores and study time." />
     
     <!-- PWA Web App & Mobile Meta Tags -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#001789" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="EDSTAQ" />
-    <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" href="./pwa-icon-192.png" />
 
     <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,12 +22,13 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    <script>
+    <script type="module" src="./src/main.jsx"></script>
+    <script type="module">
       // Register Service Worker for PWA
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then((reg) => {
+          const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+          navigator.serviceWorker.register(swUrl).then((reg) => {
             console.log('EDSTAQ Service Worker registered:', reg.scope);
           }).catch((err) => {
             console.warn('EDSTAQ Service Worker registration skipped:', err);

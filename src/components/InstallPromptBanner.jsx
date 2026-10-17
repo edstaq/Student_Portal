@@ -55,7 +55,7 @@ export default function InstallPromptBanner({ onOpenInstallModal, onTriggerNativ
     >
       <div className="banner-left-content">
         <img
-          src="/pwa-icon-192.png"
+          src={`${import.meta.env.BASE_URL}pwa-icon-192.png`}
           alt="EDSTAQ App"
           className="install-banner-app-icon"
         />

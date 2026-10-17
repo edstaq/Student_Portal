@@ -152,7 +152,7 @@ export default function InstallAppModal({
                 }}
               >
                 <img
-                  src="/pwa-icon-192.png"
+                  src={`${import.meta.env.BASE_URL}pwa-icon-192.png`}
                   alt="EDSTAQ App Icon"
                   style={{
                     width: '56px',

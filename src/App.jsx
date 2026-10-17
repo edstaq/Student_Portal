@@ -172,8 +172,8 @@ export default function App() {
           try {
             const notif = new Notification('EDSTAQ Revision Reminder', {
               body: `Hello ${data.profile?.studentName || 'Student'}! You have ${dueToday.length} revision session${dueToday.length > 1 ? 's' : ''} scheduled for today.`,
-              icon: '/edstaq-logo.png',
-              badge: '/edstaq-logo.png'
+              icon: `${import.meta.env.BASE_URL}edstaq-logo.png`,
+              badge: `${import.meta.env.BASE_URL}edstaq-logo.png`
             });
             notif.onclick = () => {
               window.focus();

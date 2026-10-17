@@ -96,7 +96,7 @@ export default function Login({ onLoginSuccess }) {
         <div className="login-brand" id="login-brand-header">
           <div className="login-logo-wrap">
             <img
-              src="/edstaq-logo.png"
+              src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
               alt="EDSTAQ Logo"
               className="login-logo-img"
               onError={(e) => { e.target.style.display = 'none'; }}

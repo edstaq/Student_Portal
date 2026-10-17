@@ -65,7 +65,7 @@ export default function Settings({
     const showNotif = () => {
       new Notification('EDSTAQ Revision Reminder', {
         body: `Hello ${student?.studentName || 'Student'}! Your scheduled revision alert is active for ${reminderTime}.`,
-        icon: '/edstaq-logo.png'
+        icon: `${import.meta.env.BASE_URL}edstaq-logo.png`
       });
       setTestAlertToast({
         type: 'success',
