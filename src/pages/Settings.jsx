@@ -52,47 +52,136 @@ export default function Settings({
     setTimeout(() => setReminderSavedToast(false), 3000);
   };
 
-  // Handle Send Test Notification
-  const handleSendTestNotification = () => {
-    if (!('Notification' in window)) {
-      setTestAlertToast({
-        type: 'error',
-        message: 'Browser does not support desktop notifications.'
-      });
-      return;
+  // Mobile in-app preview notification state
+  const [mobilePreviewNotif, setMobilePreviewNotif] = useState(null);
+
+  // Soft audio chime for notification feedback
+  const playNotificationChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.45);
+      }
+    } catch {
+      // AudioContext unavailable or blocked
+    }
+  };
+
+  // Handle Send Test Notification (supports 'desktop' and 'mobile')
+  const handleSendTestNotification = async (mode = 'desktop') => {
+    const studentName = student?.studentName || 'Student';
+    const notifTitle = 'EDSTAQ Revision Reminder';
+    const notifBody = `Hello ${studentName}! Your scheduled revision alert is active for ${reminderTime}.`;
+    const iconUrl = `${import.meta.env.BASE_URL}edstaq-logo.png`;
+
+    // 1. Play chime sound
+    playNotificationChime();
+
+    // 2. Trigger device vibration (Android & mobile phones)
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([200, 100, 200]);
+      } catch {}
     }
 
-    const showNotif = () => {
-      new Notification('EDSTAQ Revision Reminder', {
-        body: `Hello ${student?.studentName || 'Student'}! Your scheduled revision alert is active for ${reminderTime}.`,
-        icon: `${import.meta.env.BASE_URL}edstaq-logo.png`
+    // 3. For mobile test mode, show realistic iOS/Android heads-up push preview banner
+    if (mode === 'mobile') {
+      setMobilePreviewNotif({
+        title: notifTitle,
+        body: notifBody,
+        time: 'Just now'
       });
+      setTimeout(() => setMobilePreviewNotif(null), 6000);
+    }
+
+    // 4. Dispatch native system notification (ServiceWorker showNotification or Web Notification)
+    let systemNotifSuccess = false;
+
+    // A. ServiceWorker registration (Standard for Android Chrome & iOS PWA)
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && typeof reg.showNotification === 'function') {
+          let perm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+          if (perm !== 'granted' && perm !== 'denied' && typeof Notification !== 'undefined') {
+            perm = await Notification.requestPermission();
+          }
+          if (perm === 'granted') {
+            await reg.showNotification(notifTitle, {
+              body: notifBody,
+              icon: iconUrl,
+              badge: iconUrl,
+              tag: 'edstaq-test-alert',
+              renotify: true,
+              vibrate: [200, 100, 200]
+            });
+            systemNotifSuccess = true;
+          }
+        }
+      } catch (swErr) {
+        console.warn('ServiceWorker showNotification skipped:', swErr);
+      }
+    }
+
+    // B. Standard Web Notification constructor fallback
+    if (!systemNotifSuccess && typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        try {
+          new Notification(notifTitle, {
+            body: notifBody,
+            icon: iconUrl
+          });
+          systemNotifSuccess = true;
+        } catch (e) {
+          console.warn('Standard Notification constructor failed:', e);
+        }
+      } else if (Notification.permission !== 'denied') {
+        try {
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted') {
+            new Notification(notifTitle, {
+              body: notifBody,
+              icon: iconUrl
+            });
+            systemNotifSuccess = true;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Toast Feedback
+    if (mode === 'mobile') {
       setTestAlertToast({
         type: 'success',
-        message: 'Test notification triggered successfully!'
-      });
-      setTimeout(() => setTestAlertToast(null), 3500);
-    };
-
-    if (Notification.permission === 'granted') {
-      showNotif();
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          showNotif();
-        } else {
-          setTestAlertToast({
-            type: 'error',
-            message: 'Notification permission was dismissed or blocked in browser settings.'
-          });
-        }
+        message: systemNotifSuccess
+          ? 'Mobile push notification sent to your device with vibration!'
+          : 'Mobile alert banner demonstrated! (On iPhone, tap Share > Add to Home Screen for background alerts).'
       });
     } else {
-      setTestAlertToast({
-        type: 'error',
-        message: 'Notification permission is blocked. Please enable it in browser site settings.'
-      });
+      if (systemNotifSuccess) {
+        setTestAlertToast({
+          type: 'success',
+          message: 'Browser desktop notification triggered successfully!'
+        });
+      } else {
+        setTestAlertToast({
+          type: 'error',
+          message: 'Notification permission is blocked. Please enable notifications in site settings.'
+        });
+      }
     }
+    setTimeout(() => setTestAlertToast(null), 4500);
   };
 
   return (
@@ -277,10 +366,25 @@ export default function Settings({
               <button
                 type="button"
                 className="btn-card-secondary"
-                id="btn-send-test-alert"
-                onClick={handleSendTestNotification}
+                id="btn-send-test-alert-mobile"
+                onClick={() => handleSendTestNotification('mobile')}
+                style={{
+                  background: 'var(--brand-blue-subtle)',
+                  borderColor: 'rgba(0, 23, 137, 0.25)',
+                  color: 'var(--brand-navy)',
+                  fontWeight: 700
+                }}
               >
-                <Send size={15} /> Send Test Alert Now
+                <Smartphone size={15} /> Test Mobile Alert (iPhone & Android)
+              </button>
+
+              <button
+                type="button"
+                className="btn-card-secondary"
+                id="btn-send-test-alert"
+                onClick={() => handleSendTestNotification('desktop')}
+              >
+                <Send size={15} /> Test Browser Alert
               </button>
             </div>
           </form>
@@ -328,6 +432,33 @@ export default function Settings({
           </div>
         </section>
       </div>
+
+      {/* Mobile Heads-Up Notification Banner Preview */}
+      {mobilePreviewNotif && (
+        <div
+          className="mobile-headsup-banner"
+          id="mobile-headsup-banner"
+          onClick={() => setMobilePreviewNotif(null)}
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="mobile-headsup-inner">
+            <img
+              src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
+              alt="EDSTAQ"
+              className="mobile-headsup-icon"
+            />
+            <div className="mobile-headsup-content">
+              <div className="mobile-headsup-header">
+                <span className="mobile-headsup-appname">EDSTAQ STUDENT PORTAL</span>
+                <span className="mobile-headsup-time">{mobilePreviewNotif.time}</span>
+              </div>
+              <div className="mobile-headsup-title">{mobilePreviewNotif.title}</div>
+              <div className="mobile-headsup-body">{mobilePreviewNotif.body}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

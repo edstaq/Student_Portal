@@ -348,9 +348,6 @@ export default function Navbar({
             >
               <div className="mobile-tab-icon-wrap">
                 <Icon size={20} />
-                {tab.id === 'classes' && dueTodayCount > 0 && (
-                  <span className="mobile-tab-badge">{dueTodayCount}</span>
-                )}
               </div>
               <span className="mobile-tab-label">{tab.label}</span>
             </button>

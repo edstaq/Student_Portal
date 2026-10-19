@@ -1247,9 +1247,12 @@ input, select, textarea {
   border: 2px solid rgba(37, 99, 235, 0.2);
   border-top-color: #2563eb;
   border-radius: 50%;
+  -webkit-animation: spin 0.8s linear infinite;
   animation: spin 0.8s linear infinite;
   display: inline-block;
   flex-shrink: 0;
+  will-change: transform;
+  transform-origin: center center;
 }
 
 /* Classes Tab Loading Banner */
@@ -1273,8 +1276,11 @@ input, select, textarea {
   border-top-color: var(--brand-navy);
   border-right-color: var(--brand-blue-accent);
   border-radius: 50%;
+  -webkit-animation: spin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
   animation: spin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
   flex-shrink: 0;
+  will-change: transform;
+  transform-origin: center center;
 }
 
 .loading-banner-text h3 {
@@ -2235,6 +2241,16 @@ input, select, textarea {
 /* ==========================================================================
    ANIMATIONS & KEYFRAMES
    ========================================================================== */
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -3144,8 +3160,11 @@ input, select, textarea {
   border: 2.5px solid rgba(255,255,255,0.35);
   border-top-color: #fff;
   border-radius: 50%;
+  -webkit-animation: spin 0.7s linear infinite;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
+  will-change: transform;
+  transform-origin: center center;
 }
 
 /* Demo Hint */
@@ -3300,5 +3319,84 @@ input, select, textarea {
   color: var(--text-muted);
   margin: 0;
 }
+
+/* ==========================================================================
+   MOBILE HEADS-UP NOTIFICATION PREVIEW (iOS & ANDROID STYLE)
+   ========================================================================== */
+.mobile-headsup-banner {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 1.5rem);
+  max-width: 440px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  z-index: 99999;
+  cursor: pointer;
+  animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.mobile-headsup-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.mobile-headsup-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-headsup-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-headsup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.mobile-headsup-appname {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mobile-headsup-time {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mobile-headsup-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.mobile-headsup-body {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
 
 

@@ -30,7 +30,8 @@ export default function Dashboard({
   onOpenSessionModal,
   onOpenNotifications,
   onOpenDocumentModal,
-  onNavigateTab
+  onNavigateTab,
+  onMarkAsRead
 }) {
   // Date parsing helper (must be defined before KPI calculations)
   const parseDateObj = (dateStr) => {
@@ -412,7 +413,12 @@ export default function Dashboard({
               type="button"
               className="btn-revise-now"
               id="btn-revise-now-banner"
-              onClick={() => onOpenSessionModal(primaryRevision.rawClass)}
+              onClick={() => {
+                if (onMarkAsRead && primaryRevision?.id) {
+                  onMarkAsRead(primaryRevision.id);
+                }
+                onOpenSessionModal(primaryRevision.rawClass);
+              }}
             >
               <Sparkles size={16} /> Revise Now
             </button>

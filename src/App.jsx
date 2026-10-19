@@ -375,10 +375,10 @@ export default function App() {
     }));
   };
 
-  // Unread revisions count for bell badge (from active visible revisions)
+  // Unread revisions count for bell badge (strictly counts unread revisions/sessions due today)
   const unreadCount = visibleRevisions.filter((r) => !readNotifIds.includes(r.id)).length;
   const unreadDueTodayCount = visibleRevisions.filter((r) => r.isDueToday && !readNotifIds.includes(r.id)).length;
-  const bellBadgeCount = unreadDueTodayCount > 0 ? unreadDueTodayCount : unreadCount;
+  const bellBadgeCount = unreadDueTodayCount;
 
   // Show Login page if not authenticated
   if (!authSession) {
@@ -423,6 +423,7 @@ export default function App() {
             onOpenNotifications={() => setIsNotifDrawerOpen(true)}
             onOpenDocumentModal={handleOpenDocumentModal}
             onNavigateTab={handleSelectTab}
+            onMarkAsRead={handleMarkAsRead}
             isLoading={isLoading}
           />
         )}
