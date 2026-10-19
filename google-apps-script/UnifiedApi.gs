@@ -358,9 +358,17 @@ function getStudentDataPayload(targetStudentId) {
   var regRows = readSheetWithDynamicHeaders(studentSheet);
   var matchedProfile = null;
 
+  var targetDigits = normalizedTargetId.replace(/\D/g, '');
+  var target10 = targetDigits.length >= 7 ? targetDigits.slice(-10) : '';
+
   for (var i = 0; i < regRows.length; i++) {
     var sid = getFieldValue(regRows[i], ['Student ID', 'studentId', 'ID', 'StudentID']);
-    if (String(sid).trim().toLowerCase() === normalizedTargetId) {
+    var contact = getFieldValue(regRows[i], ['Contact Number', 'contactNumber', 'contact', 'Phone', 'Mobile']);
+    var rowContactDigits = String(contact || '').replace(/\D/g, '');
+    var rowContact10 = rowContactDigits.length >= 7 ? rowContactDigits.slice(-10) : '';
+
+    if (String(sid).trim().toLowerCase() === normalizedTargetId || 
+        (target10 && rowContact10 && rowContact10 === target10)) {
       matchedProfile = regRows[i];
       break;
     }
@@ -746,13 +754,25 @@ function handleSaveSettings(payload) {
 
 /**
  * Student Login Authenticator
+ * Primary: Contact Number (Mobile Number) + Password
+ * Fallback: Student ID + Password
+ * If multiple students share the same contact number (siblings), the first student is authenticated,
+ * and the portal's sibling switcher allows toggling between them seamlessly.
  */
 function handleLogin(payload) {
-  var studentId = String(payload.studentId || payload.id || '').trim();
+  var inputIdentifier = String(
+    payload.contactNumber || 
+    payload.mobileNumber || 
+    payload.phone || 
+    payload.studentId || 
+    payload.id || 
+    payload.identifier || 
+    ''
+  ).trim();
   var password = String(payload.password || '').trim();
 
-  if (!studentId) {
-    return createJsonResponse({ status: 'error', message: 'Please enter your Student ID' }, 400);
+  if (!inputIdentifier) {
+    return createJsonResponse({ status: 'error', message: 'Please enter your Mobile Number' }, 400);
   }
   if (!password) {
     return createJsonResponse({ status: 'error', message: 'Please enter your Password' }, 400);
@@ -787,31 +807,61 @@ function handleLogin(payload) {
   var targetRowIndex = -1;
   var matchedRow = null;
 
-  for (var r = 1; r < data.length; r++) {
-    var sVal = String(data[r][colStudentId]).trim();
-    if (sVal.toLowerCase() === studentId.toLowerCase()) {
-      targetRowIndex = r;
-      matchedRow = data[r];
-      break;
+  var digitsOnly = inputIdentifier.replace(/\D/g, '');
+  var inputLast10 = digitsOnly.length >= 7 ? digitsOnly.slice(-10) : digitsOnly;
+
+  // 1. First priority: Match by Contact Number column
+  if (colContact !== -1) {
+    for (var r = 1; r < data.length; r++) {
+      var rowContactRaw = String(data[r][colContact] || '').trim();
+      var rowContactDigits = rowContactRaw.replace(/\D/g, '');
+      var rowContact10 = rowContactDigits.length >= 7 ? rowContactDigits.slice(-10) : rowContactDigits;
+
+      if ((inputLast10 && rowContact10 && rowContact10 === inputLast10) || 
+          (rowContactRaw && rowContactRaw.toLowerCase() === inputIdentifier.toLowerCase())) {
+        targetRowIndex = r;
+        matchedRow = data[r];
+        break; // Match first student in case of siblings sharing the same mobile number
+      }
+    }
+  }
+
+  // 2. Second priority / fallback: Match by Student ID
+  if (!matchedRow && colStudentId !== -1) {
+    for (var r = 1; r < data.length; r++) {
+      var sVal = String(data[r][colStudentId] || '').trim();
+      if (sVal.toLowerCase() === inputIdentifier.toLowerCase()) {
+        targetRowIndex = r;
+        matchedRow = data[r];
+        break;
+      }
     }
   }
 
   if (!matchedRow) {
-    return createJsonResponse({ status: 'error', message: 'Invalid Student ID. Please check and try again.' }, 401);
+    return createJsonResponse({ status: 'error', message: 'Mobile Number not found. Please check and try again.' }, 401);
   }
 
   var storedPassword = colPassword !== -1 ? String(matchedRow[colPassword] || '').trim() : '';
   var studentContact = colContact !== -1 ? String(matchedRow[colContact] || '').trim() : '';
   var studentName = colName !== -1 ? String(matchedRow[colName] || 'Student').trim() : 'Student';
+  var studentId = String(matchedRow[colStudentId] || '').trim();
 
   // Validation logic:
   // 1. If stored password exists in sheet, compare directly
-  // 2. If stored password is blank, allow contact number OR 'edstaq123' as initial default password
+  // 2. If stored password is blank, allow 12345678, contact number, or 'edstaq123' as initial default password
   var isValid = false;
   if (storedPassword) {
     isValid = (storedPassword === password);
   } else {
-    if (password === '12345678' || (studentContact && password === studentContact)) {
+    var contactDigits = studentContact.replace(/\D/g, '');
+    var contact10 = contactDigits.length >= 7 ? contactDigits.slice(-10) : contactDigits;
+    var passDigits = password.replace(/\D/g, '');
+
+    if (password === '12345678' || 
+        password === 'edstaq123' ||
+        (studentContact && password === studentContact) ||
+        (contact10 && passDigits && contact10 === passDigits)) {
       isValid = true;
       // Auto-initialize Password column if missing or empty
       if (colPassword === -1) {
@@ -831,8 +881,9 @@ function handleLogin(payload) {
   return createJsonResponse({
     status: 'success',
     message: 'Login successful',
-    studentId: String(matchedRow[colStudentId]).trim(),
+    studentId: studentId,
     studentName: studentName,
+    contactNumber: studentContact,
     token: 'EDSTAQ_' + studentId + '_' + Date.now()
   });
 }
@@ -841,11 +892,11 @@ function handleLogin(payload) {
  * Change Student Password
  */
 function handleChangePassword(payload) {
-  var studentId = String(payload.studentId || '').trim();
+  var identifier = String(payload.studentId || payload.contactNumber || payload.id || '').trim();
   var currentPassword = String(payload.currentPassword || '').trim();
   var newPassword = String(payload.newPassword || '').trim();
 
-  if (!studentId || !newPassword) {
+  if (!identifier || !newPassword) {
     return createJsonResponse({ status: 'error', message: 'Student ID and new password are required' }, 400);
   }
   if (newPassword.length < 4) {
@@ -875,8 +926,15 @@ function handleChangePassword(payload) {
   var targetRowIndex = -1;
   var matchedRow = null;
 
+  var idDigits = identifier.replace(/\D/g, '');
+  var id10 = idDigits.length >= 7 ? idDigits.slice(-10) : '';
+
   for (var r = 1; r < data.length; r++) {
-    if (String(data[r][colStudentId]).trim().toLowerCase() === studentId.toLowerCase()) {
+    var sidVal = String(data[r][colStudentId] || '').trim().toLowerCase();
+    var contactVal = colContact !== -1 ? String(data[r][colContact] || '').replace(/\D/g, '') : '';
+    var contact10 = contactVal.length >= 7 ? contactVal.slice(-10) : '';
+
+    if (sidVal === identifier.toLowerCase() || (id10 && contact10 && id10 === contact10)) {
       targetRowIndex = r;
       matchedRow = data[r];
       break;
@@ -884,7 +942,7 @@ function handleChangePassword(payload) {
   }
 
   if (!matchedRow) {
-    return createJsonResponse({ status: 'error', message: 'Student ID not found' }, 404);
+    return createJsonResponse({ status: 'error', message: 'Student not found' }, 404);
   }
 
   var storedPassword = colPassword !== -1 ? String(matchedRow[colPassword] || '').trim() : '';

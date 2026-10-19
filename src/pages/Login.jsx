@@ -2,13 +2,13 @@
 // Premium glassmorphism login with Student ID + Password auth
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Shield, Key, X, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Phone, Key, X, CheckCircle, Lock } from 'lucide-react';
 import { login, changePassword } from '../services/authService';
 
 const DEFAULT_PASSWORD = '12345678';
 
 export default function Login({ onLoginSuccess }) {
-  const [studentId, setStudentId] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function Login({ onLoginSuccess }) {
     setError('');
     setIsLoading(true);
 
-    const result = await login(studentId.trim(), password.trim());
+    const result = await login(mobileNumber.trim(), password.trim());
 
     if (result.success) {
       // If password is the default, prompt for change
@@ -112,27 +112,27 @@ export default function Login({ onLoginSuccess }) {
         <div className="login-card" id="login-card-main">
           <div className="login-card-header">
             <h2 className="login-title">Welcome Back!</h2>
-            <p className="login-subtitle">Sign in to access your learning dashboard</p>
+            <p className="login-subtitle">Sign in with your registered mobile number</p>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit} id="login-form-main" autoComplete="off">
-            {/* Student ID Field */}
+            {/* Mobile Number Field */}
             <div className="login-field">
-              <label className="login-label" htmlFor="login-student-id">
-                Student ID
+              <label className="login-label" htmlFor="login-mobile-number">
+                Contact / Mobile Number
               </label>
               <div className="login-input-wrap">
-                <Shield size={16} className="login-input-icon" />
+                <Phone size={16} className="login-input-icon" />
                 <input
-                  id="login-student-id"
-                  type="text"
+                  id="login-mobile-number"
+                  type="tel"
+                  inputMode="numeric"
                   className="login-input"
-                  placeholder="e.g. STD101"
-                  value={studentId}
-                  onChange={(e) => { setStudentId(e.target.value); setError(''); }}
+                  placeholder="e.g. 9876543210"
+                  value={mobileNumber}
+                  onChange={(e) => { setMobileNumber(e.target.value); setError(''); }}
                   required
                   autoFocus
-                  autoCapitalize="characters"
                 />
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function Login({ onLoginSuccess }) {
                 Password
               </label>
               <div className="login-input-wrap">
-                <Shield size={16} className="login-input-icon" />
+                <Lock size={16} className="login-input-icon" />
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
