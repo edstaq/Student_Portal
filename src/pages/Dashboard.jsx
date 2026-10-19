@@ -183,32 +183,31 @@ export default function Dashboard({
   return (
     <div className="dashboard-page" id="dashboard-main-view">
       {/* 1. STUDENT HERO CARD */}
-      <section className="student-hero-card" id="student-hero-banner">
+      <section className="student-hero-card" id="student-hero-banner" style={{ position: 'relative' }}>
+        {/* Top-Right Active Status Badge (No dot, sleek compact text) */}
+        <div className="active-batch-badge hero-top-badge" id="hero-batch-badge">
+          <span>Active</span>
+        </div>
+
         <div className="hero-left-col">
           <div className="student-avatar-box" id="hero-avatar-box">
             {student?.studentName ? student.studentName.charAt(0) : 'S'}
           </div>
 
           <div className="hero-info-wrapper">
-            <div className="hero-tags-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <span className="hero-pill class-pill">
-                  {student?.registeredClass || 'Class 6'}
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'rgba(255, 255, 255, 0.75)',
-                    fontWeight: 600
-                  }}
-                >
-                  ID: {student?.studentId || 'STD101'}
-                </span>
-              </div>
-              <div className="active-batch-badge" id="hero-batch-badge">
-                <span className="live-dot" />
-                <span>Active</span>
-              </div>
+            <div className="hero-tags-row">
+              <span className="hero-pill class-pill">
+                {student?.registeredClass || 'Class 6'}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  fontWeight: 600
+                }}
+              >
+                ID: {student?.studentId || 'STD101'}
+              </span>
             </div>
 
             <h1 className="student-hero-title" id="student-profile-heading">
@@ -267,7 +266,7 @@ export default function Dashboard({
           <div className="kpi-content-box">
             <span className="kpi-title">Listening & Focus Rate</span>
             <div className="kpi-value-row">
-              <span className="kpi-value">{avgRating}</span>
+              <span className="kpi-value amber-highlight">{avgRating}</span>
               <span className="kpi-unit">/ 5.0</span>
             </div>
             <div className="kpi-stars-row">
@@ -304,11 +303,11 @@ export default function Dashboard({
           <div className="kpi-content-box">
             <span className="kpi-title">Sessions Completed</span>
             <div className="kpi-value-row">
-              <span className="kpi-value">{sessionsCompletedCount}</span>
-              <span className="kpi-unit">/ {totalClassesCount} till today</span>
+              <span className="kpi-value navy-highlight">{sessionsCompletedCount}</span>
+              <span className="kpi-unit">/ {totalClassesCount}</span>
             </div>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: '2px' }}>
-              Excludes upcoming sessions
+              Excludes upcoming
             </span>
           </div>
 
@@ -334,11 +333,11 @@ export default function Dashboard({
           <div className="kpi-content-box">
             <span className="kpi-title">Active Study Time</span>
             <div className="kpi-value-row">
-              <span className="kpi-value">{learningSessions > 0 ? avgMinutesPerSession : studyMinutes}</span>
-              <span className="kpi-unit">{learningSessions > 0 ? `min/session (${studyHours} hrs total)` : `Minutes (${studyHours} hrs)`}</span>
+              <span className="kpi-value emerald-highlight">{learningSessions > 0 ? avgMinutesPerSession : studyMinutes}</span>
+              <span className="kpi-unit">Mins</span>
             </div>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: '2px' }}>
-              {learningSessions > 0 ? `Avg per session · ${learningSessions} tracked` : 'Cumulative study time'}
+              {learningSessions > 0 ? `Avg per session (${studyHours}h)` : `Total ${studyHours} hrs`}
             </span>
           </div>
 
@@ -364,11 +363,10 @@ export default function Dashboard({
           <div className="kpi-content-box">
             <span className="kpi-title">Attendance Rate</span>
             <div className="kpi-value-row">
-              <span className="kpi-value">{attendanceRate}%</span>
-              <span className="kpi-unit">({presentCount}/{totalMarking} marked)</span>
+              <span className="kpi-value purple-highlight">{attendanceRate}%</span>
             </div>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: '2px' }}>
-              Present / total markings
+              {presentCount}/{totalMarking} marked present
             </span>
           </div>
 

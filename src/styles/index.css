@@ -746,10 +746,24 @@ input, select, textarea {
 
 .kpi-value {
   font-family: var(--font-heading);
-  font-size: 1.85rem;
+  font-size: 2.35rem;
   font-weight: 800;
-  color: var(--text-main);
-  line-height: 1.1;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* KPI Value Highlight Colors (Matching Reports Page style) */
+.kpi-value.amber-highlight {
+  color: #d97706 !important;
+}
+.kpi-value.navy-highlight {
+  color: var(--brand-navy) !important;
+}
+.kpi-value.emerald-highlight {
+  color: #059669 !important;
+}
+.kpi-value.purple-highlight {
+  color: #7c3aed !important;
 }
 
 .kpi-unit {
@@ -2469,6 +2483,15 @@ input, select, textarea {
     gap: 0.85rem !important;
   }
 
+  .hero-top-badge {
+    position: absolute !important;
+    top: 1rem !important;
+    right: 1rem !important;
+    padding: 0.22rem 0.55rem !important;
+    font-size: 0.72rem !important;
+    z-index: 5 !important;
+  }
+
   /* 2x2 Grid for Dashboard KPI Cards on Mobile */
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -2520,10 +2543,10 @@ input, select, textarea {
   }
 
   .kpi-value {
-    font-size: 1.85rem !important;
+    font-size: 2.15rem !important;
     font-weight: 800 !important;
     line-height: 1 !important;
-    color: var(--text-main) !important;
+    letter-spacing: -0.02em !important;
   }
 
   .kpi-unit {
