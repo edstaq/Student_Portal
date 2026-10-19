@@ -59,27 +59,25 @@ export function logout() {
 
 /**
  * Authenticate student using Google Apps Script or Mock credentials fallback
- * Primary: Mobile Number (Contact Number) + Password
- * Fallback: Student ID + Password
  */
-export async function login(identifier, password) {
-  const cleanInput = String(identifier || '').trim();
+export async function login(studentId, password) {
+  const cleanId = String(studentId || '').trim();
   const cleanPass = String(password || '').trim();
 
-  if (!cleanInput) {
-    return { success: false, message: 'Please enter your Mobile Number' };
+  if (!cleanId) {
+    return { success: false, message: 'Please enter your Student ID' };
   }
   if (!cleanPass) {
     return { success: false, message: 'Please enter your Password' };
   }
 
   // Check if student updated password locally
-  const savedPassword = getSavedPassword(cleanInput);
+  const savedPassword = getSavedPassword(cleanId);
   if (savedPassword && cleanPass === savedPassword) {
     const session = {
-      studentId: cleanInput,
-      studentName: cleanInput,
-      token: `AUTH_${cleanInput}_${Date.now()}`,
+      studentId: cleanId,
+      studentName: cleanId,
+      token: `AUTH_${cleanId}_${Date.now()}`,
       loggedInAt: Date.now()
     };
     saveAuthSession(session);
@@ -105,16 +103,13 @@ export async function login(identifier, password) {
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             action: 'login',
-            contactNumber: cleanInput,
-            mobileNumber: cleanInput,
-            studentId: cleanInput,
-            identifier: cleanInput,
+            studentId: cleanId,
             password: cleanPass
           }),
           signal: controller.signal
         });
       } catch (postErr) {
-        const getUrl = `${endpoint}&contactNumber=${encodeURIComponent(cleanInput)}&studentId=${encodeURIComponent(cleanInput)}&password=${encodeURIComponent(cleanPass)}`;
+        const getUrl = `${endpoint}&studentId=${encodeURIComponent(cleanId)}&password=${encodeURIComponent(cleanPass)}`;
         res = await fetch(getUrl, { signal: controller.signal });
       }
 
@@ -123,12 +118,10 @@ export async function login(identifier, password) {
       if (res && res.ok) {
         const json = await res.json();
         if (json && json.status === 'success') {
-          const resolvedStudentId = json.studentId || cleanInput;
           const session = {
-            studentId: resolvedStudentId,
+            studentId: json.studentId || cleanId,
             studentName: json.studentName || 'Student',
-            contactNumber: json.contactNumber || cleanInput,
-            token: json.token || `AUTH_${resolvedStudentId}_${Date.now()}`,
+            token: json.token || `AUTH_${cleanId}_${Date.now()}`,
             loggedInAt: Date.now()
           };
           saveAuthSession(session);
@@ -144,24 +137,20 @@ export async function login(identifier, password) {
 
   // 2. Live Student Sheet Verification (Works even before Apps Script is redeployed)
   try {
-    const studentData = await fetchStudentData(cleanInput);
+    const studentData = await fetchStudentData(cleanId);
     if (studentData && studentData.profile && (studentData.profile.studentName || studentData.profile.studentId)) {
       const p = studentData.profile;
       const contactStr = String(p.contactNumber || p.contact || p.guardianContact || '').replace(/\D/g, '');
-      const inputDigits = cleanInput.replace(/\D/g, '');
       const isMatch = 
         cleanPass === '12345678' || 
         cleanPass === 'edstaq123' ||
-        (contactStr && cleanPass === contactStr) ||
-        (inputDigits && contactStr.endsWith(inputDigits));
+        (contactStr && cleanPass === contactStr);
 
       if (isMatch) {
-        const resolvedId = (p.studentId || cleanInput).toUpperCase();
         const session = {
-          studentId: resolvedId,
-          studentName: p.studentName || resolvedId,
-          contactNumber: p.contactNumber || p.contact || cleanInput,
-          token: `AUTH_${resolvedId}_${Date.now()}`,
+          studentId: cleanId.toUpperCase(),
+          studentName: p.studentName || cleanId,
+          token: `AUTH_${cleanId}_${Date.now()}`,
           loggedInAt: Date.now()
         };
         saveAuthSession(session);
@@ -169,7 +158,7 @@ export async function login(identifier, password) {
       } else {
         return {
           success: false,
-          message: 'Incorrect password. Please try again.'
+          message: 'Incorrect password for student ' + cleanId
         };
       }
     }
@@ -178,23 +167,20 @@ export async function login(identifier, password) {
   }
 
   // 3. Mock Fallback Authentication
-  const inputDigits = cleanInput.replace(/\D/g, '');
   const mockStudent = MOCK_STUDENTS.find(
-    s => s.studentId.toLowerCase() === cleanInput.toLowerCase() ||
-         (inputDigits.length >= 7 && s.contact && s.contact.replace(/\D/g, '').endsWith(inputDigits.slice(-10)))
+    s => s.studentId.toLowerCase() === cleanId.toLowerCase()
   );
 
   if (mockStudent) {
     const isMockValid = 
       cleanPass === '12345678' || 
       cleanPass === mockStudent.contact ||
-      (cleanPass === 'edstaq123' || cleanPass === '9526859832');
+      (cleanId === 'STD101' && (cleanPass === 'edstaq123' || cleanPass === '9526859832'));
 
     if (isMockValid) {
       const session = {
         studentId: mockStudent.studentId,
         studentName: mockStudent.studentName,
-        contactNumber: mockStudent.contact,
         token: `MOCK_AUTH_${mockStudent.studentId}`,
         loggedInAt: Date.now()
       };
@@ -203,13 +189,11 @@ export async function login(identifier, password) {
     }
   }
 
-  // Universal demo access for test contact/ID
-  if ((cleanInput === '9526859832' || cleanInput.toUpperCase() === 'STD101') && 
-      (cleanPass === '12345678' || cleanPass === '9526859832' || cleanPass === 'edstaq123')) {
+  // Universal demo access for test ID
+  if (cleanId.toUpperCase() === 'STD101' && (cleanPass === '12345678' || cleanPass === '9526859832')) {
     const session = {
       studentId: 'STD101',
       studentName: 'Safa Salwa Pk',
-      contactNumber: '9526859832',
       token: `AUTH_STD101_${Date.now()}`,
       loggedInAt: Date.now()
     };
@@ -219,7 +203,7 @@ export async function login(identifier, password) {
 
   return {
     success: false,
-    message: 'Mobile Number not found. Please check and try again.'
+    message: 'Invalid Student ID or Password. Please check your credentials.'
   };
 }
 
