@@ -29,6 +29,8 @@ export default function Navbar({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -41,6 +43,35 @@ export default function Navbar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Smart hide/show mobile bottom bar on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+      // Always show near the very top
+      if (currentScrollY < 40) {
+        setIsBottomNavVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      const diff = currentScrollY - lastScrollY.current;
+      // Require noticeable scroll distance to avoid trigger from jitter
+      if (Math.abs(diff) > 8) {
+        if (diff > 0) {
+          // Scrolling down -> hide bottom bar
+          setIsBottomNavVisible(false);
+        } else {
+          // Scrolling up -> show bottom bar
+          setIsBottomNavVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'classes', label: 'Classes', icon: GraduationCap },
@@ -49,80 +80,80 @@ export default function Navbar({
   ];
 
   return (
-    <header className="edstaq-navbar" id="edstaq-main-navbar">
-      <div className="navbar-inner">
-        {/* Brand Section */}
-        <div className="brand-section">
-          <a
-            href="#"
-            className="brand-logo-link"
-            id="edstaq-logo-brand"
-            onClick={(e) => {
-              e.preventDefault();
-              onSelectTab('dashboard');
-            }}
-          >
-            <img
-              src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
-              alt="EDSTAQ Logo"
-              className="brand-logo-img"
-              onError={(e) => {
-                // If logo fails, fallback to styled logo text
-                e.target.style.display = 'none';
+    <>
+      <header className="edstaq-navbar" id="edstaq-main-navbar">
+        <div className="navbar-inner">
+          {/* Brand Section */}
+          <div className="brand-section">
+            <a
+              href="#"
+              className="brand-logo-link"
+              id="edstaq-logo-brand"
+              onClick={(e) => {
+                e.preventDefault();
+                onSelectTab('dashboard');
               }}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: '1.2rem',
-                  fontWeight: 800,
-                  color: 'var(--brand-navy)',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.15
+            >
+              <img
+                src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
+                alt="EDSTAQ Logo"
+                className="brand-logo-img"
+                onError={(e) => {
+                  e.target.style.display = 'none';
                 }}
-              >
-                Student Portal
-              </span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted)',
-                  letterSpacing: '0.01em',
-                  marginTop: '1px',
-                  lineHeight: 1
-                }}
-              >
-                powered by <strong style={{ color: 'var(--brand-navy)', fontWeight: 700 }}>EDSTAQ</strong>
-              </span>
-            </div>
-          </a>
-        </div>
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '1.2rem',
+                    fontWeight: 800,
+                    color: 'var(--brand-navy)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15
+                  }}
+                >
+                  Student Portal
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.01em',
+                    marginTop: '1px',
+                    lineHeight: 1
+                  }}
+                >
+                  powered by <strong style={{ color: 'var(--brand-navy)', fontWeight: 700 }}>EDSTAQ</strong>
+                </span>
+              </div>
+            </a>
+          </div>
 
-        {/* Center Tabs Navigation */}
-        <nav className="nav-center-menu" id="nav-tabs-menu" aria-label="Portal Navigation">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`nav-tab-btn ${isActive ? 'active' : ''}`}
-                id={`nav-tab-${tab.id}`}
-                onClick={() => onSelectTab(tab.id)}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+          {/* Desktop Center Tabs Navigation (hidden on mobile) */}
+          <nav className="nav-center-menu desktop-only-nav" id="nav-tabs-menu" aria-label="Portal Navigation">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = currentTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`nav-tab-btn ${isActive ? 'active' : ''}`}
+                  id={`nav-tab-${tab.id}`}
+                  onClick={() => onSelectTab(tab.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-        {/* Right Section: Mode Badge, Student Switcher, Notification Bell */}
-        <div className="nav-actions-section">
+          {/* Right Section: Mode Badge, Student Switcher, Notification Bell */}
+          <div className="nav-actions-section">
 
 
           {/* Quick Install Mobile App Button */}
@@ -269,5 +300,41 @@ export default function Navbar({
         </div>
       </div>
     </header>
+
+    {/* Mobile Bottom Navigation Bar (Fixed to screen bottom, slides down on scroll down, slides up on scroll up) */}
+    <nav
+      className={`mobile-bottom-nav ${isBottomNavVisible ? 'visible' : 'hidden'}`}
+      id="mobile-bottom-navigation"
+      aria-label="Mobile Bottom Navigation"
+    >
+      <div className="mobile-bottom-nav-inner">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = currentTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`mobile-tab-btn ${isActive ? 'active' : ''}`}
+              id={`mobile-tab-${tab.id}`}
+              onClick={() => {
+                onSelectTab(tab.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <div className="mobile-tab-icon-wrap">
+                <Icon size={20} />
+                {tab.id === 'classes' && dueTodayCount > 0 && (
+                  <span className="mobile-tab-badge">{dueTodayCount}</span>
+                )}
+              </div>
+              <span className="mobile-tab-label">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  </>
   );
 }
