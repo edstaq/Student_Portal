@@ -125,6 +125,11 @@ export default function App() {
     return revisions.filter((r) => !clearedNotifIds.includes(r.id));
   }, [revisions, clearedNotifIds]);
 
+  // Unread revisions count for bell badge (strictly counts unread revisions/sessions due today)
+  const unreadCount = visibleRevisions.filter((r) => !readNotifIds.includes(r.id)).length;
+  const unreadDueTodayCount = visibleRevisions.filter((r) => r.isDueToday && !readNotifIds.includes(r.id)).length;
+  const bellBadgeCount = unreadDueTodayCount;
+
   const handleMarkAsRead = useCallback((notifId) => {
     setReadNotifIds((prev) => {
       const updated = Array.from(new Set([...prev, notifId]));
@@ -150,6 +155,22 @@ export default function App() {
     });
   }, [visibleRevisions, activeStudentId]);
 
+  // Synchronize App Icon Badge with active Due Today notifications (W3C Badging API)
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    try {
+      if ('setAppBadge' in navigator) {
+        if (bellBadgeCount > 0) {
+          navigator.setAppBadge(bellBadgeCount).catch(() => {});
+        } else if ('clearAppBadge' in navigator) {
+          navigator.clearAppBadge().catch(() => {});
+        }
+      }
+    } catch {
+      // Badging unsupported
+    }
+  }, [bellBadgeCount]);
+
   // Automated Native Device Push Notification Scheduler (Checks every 30s)
   useEffect(() => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
@@ -169,20 +190,50 @@ export default function App() {
       if (currentTimeStr === reminderTimeStr && !localStorage.getItem(lastSentKey)) {
         const dueToday = visibleRevisions.filter((r) => r.isDueToday);
         if (dueToday.length > 0) {
-          try {
-            const notif = new Notification('EDSTAQ Revision Reminder', {
-              body: `Hello ${data.profile?.studentName || 'Student'}! You have ${dueToday.length} revision session${dueToday.length > 1 ? 's' : ''} scheduled for today.`,
-              icon: `${import.meta.env.BASE_URL}edstaq-logo.png`,
-              badge: `${import.meta.env.BASE_URL}edstaq-logo.png`
-            });
-            notif.onclick = () => {
-              window.focus();
-              setIsNotifDrawerOpen(true);
-            };
-            localStorage.setItem(lastSentKey, 'sent');
-          } catch (e) {
-            console.warn('Native alert dispatch failed:', e);
+          const studentName = data.profile?.studentName || 'Student';
+          const notifTitle = 'EDSTAQ Revision Reminder';
+          const notifBody = `Hello ${studentName}! You have ${dueToday.length} revision session${dueToday.length > 1 ? 's' : ''} scheduled for today.`;
+          const iconUrl = `${import.meta.env.BASE_URL}edstaq-logo.png`;
+          const badgeUrl = `${import.meta.env.BASE_URL}pwa-icon-192.png`;
+
+          // 1. Dispatch through Service Worker for native Mobile & PC Notification Bar
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then((reg) => {
+              if (reg && reg.showNotification) {
+                reg.showNotification(notifTitle, {
+                  body: notifBody,
+                  icon: iconUrl,
+                  badge: badgeUrl,
+                  vibrate: [200, 100, 200],
+                  tag: 'edstaq-daily-alert',
+                  renotify: true,
+                  data: { url: `${import.meta.env.BASE_URL}?tab=classes` }
+                }).catch(() => {});
+              }
+            }).catch(() => {});
+          } else {
+            // Fallback for standard notification constructor
+            try {
+              const notif = new Notification(notifTitle, {
+                body: notifBody,
+                icon: iconUrl,
+                badge: badgeUrl
+              });
+              notif.onclick = () => {
+                window.focus();
+                setIsNotifDrawerOpen(true);
+              };
+            } catch (e) {
+              console.warn('Standard Notification fallback failed:', e);
+            }
           }
+
+          // 2. Set App Icon Badge ('1' or dueToday count)
+          if ('setAppBadge' in navigator) {
+            navigator.setAppBadge(dueToday.length).catch(() => {});
+          }
+
+          localStorage.setItem(lastSentKey, 'sent');
         }
       }
     };
@@ -374,11 +425,6 @@ export default function App() {
       activityLogs: getLocalActivityLogs()
     }));
   };
-
-  // Unread revisions count for bell badge (strictly counts unread revisions/sessions due today)
-  const unreadCount = visibleRevisions.filter((r) => !readNotifIds.includes(r.id)).length;
-  const unreadDueTodayCount = visibleRevisions.filter((r) => r.isDueToday && !readNotifIds.includes(r.id)).length;
-  const bellBadgeCount = unreadDueTodayCount;
 
   // Show Login page if not authenticated
   if (!authSession) {

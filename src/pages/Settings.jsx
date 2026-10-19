@@ -160,19 +160,24 @@ export default function Settings({
       }
     }
 
+    // 5. Update App Icon Badge ('1') on Home Screen & Taskbar
+    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+      navigator.setAppBadge(1).catch(() => {});
+    }
+
     // Toast Feedback
     if (mode === 'mobile') {
       setTestAlertToast({
         type: 'success',
         message: systemNotifSuccess
-          ? 'Mobile push notification sent to your device with vibration!'
-          : 'Mobile alert banner demonstrated! (On iPhone, tap Share > Add to Home Screen for background alerts).'
+          ? "Mobile push alert sent to your device with vibration! App icon badge set to '1'."
+          : "Mobile alert banner shown on screen! App icon badge set to '1'. (On iPhone, tap Share > Add to Home Screen for background alerts)."
       });
     } else {
       if (systemNotifSuccess) {
         setTestAlertToast({
           type: 'success',
-          message: 'Browser desktop notification triggered successfully!'
+          message: "Browser desktop notification triggered! App icon badge set to '1'."
         });
       } else {
         setTestAlertToast({
@@ -182,6 +187,17 @@ export default function Settings({
       }
     }
     setTimeout(() => setTestAlertToast(null), 4500);
+  };
+
+  const handleClearBadge = () => {
+    if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+    setTestAlertToast({
+      type: 'success',
+      message: 'App icon badge cleared from home screen / taskbar.'
+    });
+    setTimeout(() => setTestAlertToast(null), 3000);
   };
 
   return (
@@ -385,6 +401,16 @@ export default function Settings({
                 onClick={() => handleSendTestNotification('desktop')}
               >
                 <Send size={15} /> Test Browser Alert
+              </button>
+
+              <button
+                type="button"
+                className="btn-card-secondary"
+                id="btn-clear-app-badge"
+                onClick={handleClearBadge}
+                title="Clear the red '1' badge from the app icon"
+              >
+                <CheckCircle2 size={15} /> Clear App Badge
               </button>
             </div>
           </form>
