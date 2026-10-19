@@ -1,7 +1,4 @@
-// EDSTAQ Session Detail Modal
-// Displays verified session details, teacher rating & comment, and Learn Docs (Proof files strictly hidden)
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   CheckCircle,
@@ -16,7 +13,7 @@ import {
   BookOpen,
   ExternalLink
 } from 'lucide-react';
-import { formatMinimalSessionDate } from '../services/apiService';
+import { formatMinimalSessionDate, logActivity } from '../services/apiService';
 
 export default function SessionDetailModal({
   isOpen,
@@ -28,8 +25,49 @@ export default function SessionDetailModal({
   onOpenDocument
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
+  const startTimeRef = useRef(Date.now());
+  const hasLoggedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen || !session) return;
+    startTimeRef.current = Date.now();
+    hasLoggedRef.current = false;
+
+    return () => {
+      if (!hasLoggedRef.current) {
+        hasLoggedRef.current = true;
+        const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
+        if (duration >= 5) {
+          logActivity({
+            studentId: studentId || session?.studentId,
+            sessionId: session?.sessionId || 'N/A',
+            type: 'Session Notes Viewed',
+            detail: `${session?.subjectName || 'Subject'} - ${session?.chapterName || session?.topicCovered || 'Class Details'}`,
+            durationSeconds: duration
+          }).catch(() => {});
+        }
+      }
+    };
+  }, [isOpen, session, studentId]);
 
   if (!isOpen || !session) return null;
+
+  const handleClose = () => {
+    if (!hasLoggedRef.current) {
+      hasLoggedRef.current = true;
+      const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
+      if (duration >= 5) {
+        logActivity({
+          studentId: studentId || session?.studentId,
+          sessionId: session?.sessionId || 'N/A',
+          type: 'Session Notes Viewed',
+          detail: `${session?.subjectName || 'Subject'} - ${session?.chapterName || session?.topicCovered || 'Class Details'}`,
+          durationSeconds: duration
+        }).catch(() => {});
+      }
+    }
+    onClose();
+  };
 
   // Find attendance & listening rate log for this session
   const sessionLog = logs.find((l) => l.sessionId === session.sessionId);
@@ -72,7 +110,7 @@ export default function SessionDetailModal({
   };
 
   return (
-    <div className="modal-overlay" id="session-detail-modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" id="session-detail-modal-overlay" onClick={handleClose}>
       <div
         className="modal-content-card"
         id="session-detail-modal-card"

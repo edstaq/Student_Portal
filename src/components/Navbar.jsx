@@ -296,7 +296,7 @@ export default function Navbar({
                       }}
                     >
                       <LogOut size={16} color="#ef4444" />
-                      <span>Sign Out / Log Out</span>
+                      <span>Log Out</span>
                     </button>
                   </div>
                 )}

@@ -1,9 +1,6 @@
-// EDSTAQ Document Viewer Modal
-// Embedded Google Drive preview iframe with fallback and ActiveStudyTimer
-
-import React, { useState } from 'react';
-import { X, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
-
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ExternalLink, FileText, CheckCircle2, Clock } from 'lucide-react';
+import { logActivity } from '../services/apiService';
 
 export default function DocumentViewerModal({
   isOpen,
@@ -14,8 +11,63 @@ export default function DocumentViewerModal({
   onStudyTimeLogged
 }) {
   const [successToast, setSuccessToast] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startTimeRef = useRef(Date.now());
+  const hasLoggedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen || !file) return;
+
+    startTimeRef.current = Date.now();
+    hasLoggedRef.current = false;
+    setElapsedSec(0);
+
+    const interval = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      if (!hasLoggedRef.current) {
+        hasLoggedRef.current = true;
+        const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
+        if (duration >= 3) {
+          logActivity({
+            studentId: studentId || session?.studentId,
+            sessionId: session?.sessionId || 'N/A',
+            type: 'Document Studied',
+            detail: `${file?.fileName || 'Document'} (${session?.subjectName || 'Study Material'})`,
+            durationSeconds: duration
+          }).catch((err) => console.warn('Activity log sync error:', err));
+          if (onStudyTimeLogged) {
+            onStudyTimeLogged(duration);
+          }
+        }
+      }
+    };
+  }, [isOpen, file, session, studentId]);
 
   if (!isOpen || !file) return null;
+
+  const handleClose = () => {
+    if (!hasLoggedRef.current) {
+      hasLoggedRef.current = true;
+      const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
+      if (duration >= 3) {
+        logActivity({
+          studentId: studentId || session?.studentId,
+          sessionId: session?.sessionId || 'N/A',
+          type: 'Document Studied',
+          detail: `${file?.fileName || 'Document'} (${session?.subjectName || 'Study Material'})`,
+          durationSeconds: duration
+        }).catch((err) => console.warn('Activity log sync error:', err));
+        if (onStudyTimeLogged) {
+          onStudyTimeLogged(duration);
+        }
+      }
+    }
+    onClose();
+  };
 
   // Convert Google Drive open URL to preview URL
   const getEmbedUrl = (rawUrl) => {
@@ -50,7 +102,7 @@ export default function DocumentViewerModal({
   };
 
   return (
-    <div className="modal-overlay" id="document-viewer-modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" id="document-viewer-modal-overlay" onClick={handleClose}>
       <div
         className="doc-viewer-modal-card"
         id="document-viewer-modal-card"
@@ -62,9 +114,29 @@ export default function DocumentViewerModal({
               <FileText size={20} />
             </div>
             <div>
-              <h2 className="modal-title" style={{ fontSize: '1.15rem' }}>
-                {file.fileName || 'Study Material'}
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <h2 className="modal-title" style={{ fontSize: '1.15rem', margin: 0 }}>
+                  {file.fileName || 'Study Material'}
+                </h2>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#065f46',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}
+                  title="Time spent reading this file is actively recorded and synced to Google Sheets"
+                >
+                  <Clock size={12} color="#059669" />
+                  <span>{Math.floor(elapsedSec / 60)}m {elapsedSec % 60}s</span>
+                </div>
+              </div>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {session ? `${session.subjectName || 'Maths'} • Session Notes` : 'Class Learn Docs'}
               </span>
@@ -85,7 +157,7 @@ export default function DocumentViewerModal({
               type="button"
               className="modal-close-btn"
               id="btn-close-doc-modal"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close document viewer"
             >
               <X size={20} />
