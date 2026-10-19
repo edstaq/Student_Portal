@@ -17,6 +17,7 @@ import {
   XCircle,
   Hash
 } from 'lucide-react';
+import { formatMinimalSessionDate } from '../services/apiService';
 
 export default function Classes({
   classes = [],
@@ -303,27 +304,9 @@ export default function Classes({
                 <div>
                   <div className="session-card-top">
                     <span className="subject-badge">{cls.subjectName || cls.subject || 'MATHS'}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      {cls.sessionId && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: 'var(--text-light)',
-                            background: 'rgba(100, 116, 139, 0.08)',
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            fontFamily: 'monospace'
-                          }}
-                          title={`Session ID: ${cls.sessionId}`}
-                        >
-                          ID: {cls.sessionId}
-                        </span>
-                      )}
-                      <span className={`status-badge ${badgeMeta.className}`}>
-                        {badgeMeta.label}
-                      </span>
-                    </div>
+                    <span className={`status-badge ${badgeMeta.className}`}>
+                      {badgeMeta.label}
+                    </span>
                   </div>
 
                   <h3 className="session-topic-title" style={{ marginTop: '0.85rem' }}>
@@ -334,7 +317,7 @@ export default function Classes({
                 {/* Grouped Information Panel */}
                 <div className="session-meta-list">
                   <div className="session-meta-item">
-                    <Calendar size={14} /> <span>Date: <strong>{displayDate}</strong></span>
+                    <Calendar size={14} /> <span>Date: <strong>{formatMinimalSessionDate(displayDate)}</strong></span>
                   </div>
                   <div className="session-meta-item">
                     <Clock size={14} />{' '}

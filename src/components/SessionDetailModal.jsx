@@ -16,6 +16,7 @@ import {
   BookOpen,
   ExternalLink
 } from 'lucide-react';
+import { formatMinimalSessionDate } from '../services/apiService';
 
 export default function SessionDetailModal({
   isOpen,
@@ -150,7 +151,7 @@ export default function SessionDetailModal({
             <div className="meta-field">
               <span className="meta-field-label">Date</span>
               <span className="meta-field-val" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Calendar size={14} color="#64748b" /> {session.date || session.classDate}
+                <Calendar size={14} color="#64748b" /> {formatMinimalSessionDate(session.date || session.classDate)}
               </span>
             </div>
 
@@ -215,11 +216,21 @@ export default function SessionDetailModal({
           {ratingValue !== null && (
             <div className="listening-rating-box" id="modal-listening-rate-box">
               <div className="rating-header-row">
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1e3a8a' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1e3a8a', lineHeight: 1.3 }}>
                   Student Listening & Focus Rating
                 </span>
-                <span className="rating-score-pill">
-                  {ratingValue} / 5.0
+                <span
+                  className="rating-score-pill"
+                  style={{
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    flexShrink: 0
+                  }}
+                >
+                  <span style={{ fontWeight: 800 }}>{ratingValue}</span>
+                  <span style={{ opacity: 0.8, fontSize: '0.78rem', fontWeight: 600 }}>/ 5.0</span>
                 </span>
               </div>
 

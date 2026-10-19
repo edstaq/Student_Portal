@@ -570,4 +570,64 @@ export function addCumulativeStudyTime(seconds) {
   return next;
 }
 
+/**
+ * Format date string into minimal, standard format: "Sun, 25 Oct 2026"
+ * 3-letter day of week, 2-digit day, 3-letter month, 4-digit year
+ */
+export function formatMinimalSessionDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return dateStr || '';
+  const trimmed = dateStr.trim();
+  if (trimmed.toLowerCase() === 'upcoming') return 'Upcoming';
+
+  let dateObj = null;
+
+  // Try parsing DD/MM/YYYY
+  const slashParts = trimmed.split('/');
+  if (slashParts.length === 3) {
+    const day = parseInt(slashParts[0], 10);
+    const month = parseInt(slashParts[1], 10) - 1;
+    const year = parseInt(slashParts[2], 10);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      dateObj = new Date(year, month, day);
+    }
+  }
+
+  // Try parsing YYYY-MM-DD or DD-MM-YYYY
+  if (!dateObj) {
+    const hyphenParts = trimmed.split('-');
+    if (hyphenParts.length === 3) {
+      if (hyphenParts[0].length === 4) {
+        // YYYY-MM-DD
+        dateObj = new Date(parseInt(hyphenParts[0], 10), parseInt(hyphenParts[1], 10) - 1, parseInt(hyphenParts[2], 10));
+      } else {
+        // DD-MM-YYYY
+        dateObj = new Date(parseInt(hyphenParts[2], 10), parseInt(hyphenParts[1], 10) - 1, parseInt(hyphenParts[0], 10));
+      }
+    }
+  }
+
+  // Standard Date fallback
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      dateObj = parsed;
+    }
+  }
+
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return trimmed;
+  }
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const dayOfWeek = days[dateObj.getDay()];
+  const day = dateObj.getDate();
+  const month = months[dateObj.getMonth()];
+  const year = dateObj.getFullYear();
+
+  return `${dayOfWeek}, ${day} ${month} ${year}`;
+}
+
+
 

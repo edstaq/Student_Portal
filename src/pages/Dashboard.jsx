@@ -17,6 +17,7 @@ import {
   Video,
   FileText
 } from 'lucide-react';
+import { formatMinimalSessionDate } from '../services/apiService';
 
 export default function Dashboard({
   student,
@@ -189,26 +190,30 @@ export default function Dashboard({
           </div>
 
           <div className="hero-info-wrapper">
-            <div className="hero-tags-row">
-              <span className="hero-pill class-pill">
-                {student?.registeredClass || 'Class 6'}
-              </span>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontWeight: 600
-                }}
-              >
-                ID: {student?.studentId || 'STD101'}
-              </span>
+            <div className="hero-tags-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span className="hero-pill class-pill">
+                  {student?.registeredClass || 'Class 6'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'rgba(255, 255, 255, 0.75)',
+                    fontWeight: 600
+                  }}
+                >
+                  ID: {student?.studentId || 'STD101'}
+                </span>
+              </div>
+              <div className="active-batch-badge" id="hero-batch-badge">
+                <span className="live-dot" />
+                <span>Active</span>
+              </div>
             </div>
 
             <h1 className="student-hero-title" id="student-profile-heading">
               {student?.studentName || 'Student Name'}
             </h1>
-
-
 
             <div className="hero-guardian-line">
               <UserCheck size={14} />
@@ -220,11 +225,6 @@ export default function Dashboard({
         </div>
 
         <div className="hero-right-col">
-          <div className="active-batch-badge" id="hero-batch-badge">
-            <span className="live-dot" />
-            <span>Active</span>
-          </div>
-
           <div className="hero-date-box">
             <Calendar size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
             <span>Today: {todayFormatted}</span>
@@ -404,7 +404,7 @@ export default function Dashboard({
                 {primaryRevision.subjectName}: {primaryRevision.topicCovered}
               </h2>
               <span className="banner-topic">
-                Class Date: {primaryRevision.classDate}
+                Class Date: {formatMinimalSessionDate(primaryRevision.classDate)}
               </span>
             </div>
           </div>
@@ -499,22 +499,6 @@ export default function Dashboard({
                   <div className="session-card-top">
                     <span className="subject-badge">{cls.subjectName || cls.subject || 'MATHS'}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      {cls.sessionId && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: 'var(--text-light)',
-                            background: 'rgba(100, 116, 139, 0.08)',
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            fontFamily: 'monospace'
-                          }}
-                          title={`Session ID: ${cls.sessionId}`}
-                        >
-                          ID: {cls.sessionId}
-                        </span>
-                      )}
                       {relativeDayLabel && (
                         <span
                           style={{
@@ -559,7 +543,7 @@ export default function Dashboard({
                   <div className="session-meta-item">
                     <Calendar size={14} />{' '}
                     <span>
-                      Date: <strong>{cls.date || cls.classDate}</strong>
+                      Date: <strong>{formatMinimalSessionDate(cls.date || cls.classDate)}</strong>
                     </span>
                   </div>
                   <div className="session-meta-item">

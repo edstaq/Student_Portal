@@ -262,6 +262,44 @@ export default function Navbar({
                       </React.Fragment>
                     );
                   })}
+
+                {/* Log Out Option inside Profile Dropdown */}
+                {onLogout && (
+                  <div
+                    style={{
+                      marginTop: '0.65rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px solid #f1f5f9'
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="student-dropdown-item logout"
+                      id="student-dropdown-logout-btn"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        onLogout();
+                      }}
+                      style={{
+                        color: 'var(--accent-rose, #ef4444)',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.65rem',
+                        width: '100%',
+                        padding: '0.55rem 0.65rem',
+                        borderRadius: '8px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <LogOut size={16} color="#ef4444" />
+                      <span>Sign Out / Log Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -282,21 +320,6 @@ export default function Navbar({
               </span>
             )}
           </button>
-
-          {/* Logout Button */}
-          {onLogout && (
-            <button
-              type="button"
-              className="notif-bell-btn"
-              id="nav-logout-btn"
-              onClick={onLogout}
-              aria-label="Sign out"
-              title="Sign Out"
-              style={{ opacity: 0.75 }}
-            >
-              <LogOut size={18} />
-            </button>
-          )}
         </div>
       </div>
     </header>
