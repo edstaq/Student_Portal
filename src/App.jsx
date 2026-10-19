@@ -177,12 +177,31 @@ export default function App() {
     if (Notification.permission !== 'granted') return;
     if (!data.settings?.notificationsEnabled) return;
 
+    // Normalize a time string ("07:30 PM" or "19:30" or "7:30 pm") to "HH:MM" 24-hour format
+    const normalizeTimeTo24h = (timeStr) => {
+      if (!timeStr) return '19:00';
+      const s = String(timeStr).trim();
+      // Already HH:MM or H:MM 24h format (no AM/PM)
+      if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
+      // 12-hour format with AM/PM
+      const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (m) {
+        let h = parseInt(m[1], 10);
+        const min = m[2];
+        const period = m[3].toUpperCase();
+        if (period === 'AM' && h === 12) h = 0;
+        if (period === 'PM' && h !== 12) h += 12;
+        return `${String(h).padStart(2, '0')}:${min}`;
+      }
+      return '19:00';
+    };
+
     const checkReminder = () => {
       const now = new Date();
       const currentHours = String(now.getHours()).padStart(2, '0');
       const currentMinutes = String(now.getMinutes()).padStart(2, '0');
       const currentTimeStr = `${currentHours}:${currentMinutes}`;
-      const reminderTimeStr = data.settings?.preferredReminderTime || '19:00';
+      const reminderTimeStr = normalizeTimeTo24h(data.settings?.preferredReminderTime);
 
       const todayKey = now.toISOString().slice(0, 10);
       const lastSentKey = `edstaq_last_native_alert_${activeStudentId}_${todayKey}`;

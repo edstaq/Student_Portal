@@ -26,10 +26,27 @@ export default function Settings({
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [reminderSavedToast, setReminderSavedToast] = useState(false);
 
+  // Normalize any time string to HH:MM (24-hour) for the <input type="time">
+  const normalizeTimeTo24h = (timeStr) => {
+    if (!timeStr) return '19:00';
+    const s = String(timeStr).trim();
+    if (/^\d{1,2}:\d{2}$/.test(s)) return s.length === 4 ? `0${s}` : s;
+    const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (m) {
+      let h = parseInt(m[1], 10);
+      const min = m[2];
+      const period = m[3].toUpperCase();
+      if (period === 'AM' && h === 12) h = 0;
+      if (period === 'PM' && h !== 12) h += 12;
+      return `${String(h).padStart(2, '0')}:${min}`;
+    }
+    return '19:00';
+  };
+
   useEffect(() => {
     if (student?.studentId) {
       const local = getLocalSettings(student.studentId);
-      setReminderTime(local.preferredReminderTime || '19:00');
+      setReminderTime(normalizeTimeTo24h(local.preferredReminderTime) || '19:00');
       setNotificationsEnabled(local.notificationsEnabled !== false);
     }
   }, [student]);

@@ -305,6 +305,24 @@ export async function fetchStudentData(studentId, forceRefresh = false) {
             });
           }
 
+          const rawApiSettings = raw.settings || getLocalSettings(targetId);
+          // Normalize time to HH:MM 24-hour format regardless of Google Sheets format
+          const normalizeTime24h = (t) => {
+            if (!t) return '19:00';
+            const s = String(t).trim();
+            if (/^\d{1,2}:\d{2}$/.test(s)) return s.length === 4 ? `0${s}` : s;
+            const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (m) {
+              let h = parseInt(m[1], 10);
+              const min = m[2];
+              const p = m[3].toUpperCase();
+              if (p === 'AM' && h === 12) h = 0;
+              if (p === 'PM' && h !== 12) h += 12;
+              return `${String(h).padStart(2, '0')}:${min}`;
+            }
+            return '19:00';
+          };
+
           const liveResult = {
             isLive: true,
             profile: normalizedProfile,
@@ -314,7 +332,10 @@ export async function fetchStudentData(studentId, forceRefresh = false) {
             logs: normalizedLogs,
             files: normalizedFiles,
             subjects: raw.subjects || {},
-            settings: raw.settings || getLocalSettings(targetId),
+            settings: {
+              ...rawApiSettings,
+              preferredReminderTime: normalizeTime24h(rawApiSettings.preferredReminderTime)
+            },
             activityLogs: getLocalActivityLogs()
           };
 
