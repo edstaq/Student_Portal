@@ -23,6 +23,26 @@ export const MOCK_STUDENTS = [
     periodInDays: 10
   },
   {
+    studentId: 'STD107',
+    studentName: 'Rayan Salwa Pk',
+    contact: '9526859832',
+    email: 'sherinshahla64@gmail.com',
+    dob: '15/04/2017',
+    address: 'Valamboor, Kerala, India',
+    guardianContact: '9526859832',
+    guardianName: 'Shahla Sherin',
+    guardianRelation: 'Mother',
+    registeredClass: 'Class 3',
+    board: 'Kerala',
+    school: 'A. M. U. P SCHOOL KOOTTIL',
+    referredBy: 'Sibling',
+    date: '29/10/2025',
+    dashboardUrl: 'https://edstaq.github.io/progress_dashboard/?id=STD107',
+    registrationAmt: 50,
+    paymentMode: 'After',
+    periodInDays: 10
+  },
+  {
     studentId: 'STD102',
     studentName: 'Liya Fathima.v',
     contact: '8943695345',
@@ -121,6 +141,34 @@ export const MOCK_STUDENTS = [
     registrationAmt: 50,
     paymentMode: 'After',
     periodInDays: 1
+  },
+  {
+    studentId: 'STD135',
+    studentName: 'Aisha Aimy',
+    contact: '9645577778',
+    guardianContact: '9645577778',
+    guardianName: 'Kurikkal',
+    guardianRelation: 'Parent',
+    registeredClass: 'Class 5',
+    board: 'Kerala',
+    school: 'A. M. U. P SCHOOL',
+    status: 'Active',
+    date: '10/01/2026',
+    dashboardUrl: 'https://edstaq.github.io/progress_dashboard/?id=STD135'
+  },
+  {
+    studentId: 'STD134',
+    studentName: 'Ain Mahmood Kurikkal',
+    contact: '9645577778',
+    guardianContact: '9645577778',
+    guardianName: 'Kurikkal',
+    guardianRelation: 'Parent',
+    registeredClass: 'Class 8',
+    board: 'Kerala',
+    school: 'A. M. U. P SCHOOL',
+    status: 'Active',
+    date: '10/01/2026',
+    dashboardUrl: 'https://edstaq.github.io/progress_dashboard/?id=STD134'
   }
 ];
 

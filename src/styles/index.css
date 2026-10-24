@@ -275,28 +275,86 @@ button:active:not(:disabled),
   animation: pulseBadge 2s infinite;
 }
 
-/* Student Selector Dropdown */
+/* Navigation Action Icon Buttons (Common for Refresh, Bell, Profile) */
+.nav-action-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 50%;
+  color: var(--text-body);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.nav-action-icon-btn:hover {
+  border-color: var(--brand-navy);
+  color: var(--brand-navy);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 23, 137, 0.08);
+}
+
+.nav-action-icon-btn:active {
+  transform: scale(0.94);
+}
+
+/* Refresh Button */
+.nav-refresh-btn {
+  color: #64748b;
+}
+
+.nav-refresh-btn:hover {
+  color: var(--brand-navy);
+  border-color: var(--brand-blue-accent);
+}
+
+.nav-refresh-btn.is-spinning {
+  cursor: not-allowed;
+  opacity: 0.85;
+  border-color: var(--brand-blue-accent);
+  color: var(--brand-navy);
+}
+
+.refresh-rotate-anim {
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  transform-origin: center center;
+}
+
+/* Student Profile Icon-Only Button */
 .student-switcher-container {
   position: relative;
 }
 
-.student-select-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-full);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-main);
-  transition: all var(--transition-normal);
+.student-profile-icon-btn {
+  padding: 0;
+  border: 2px solid transparent;
+  background: transparent;
 }
 
-.student-select-btn:hover {
-  border-color: var(--brand-blue-accent);
-  box-shadow: var(--shadow-sm);
+.student-profile-icon-btn .student-avatar-micro {
+  width: 36px;
+  height: 36px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--brand-navy), var(--brand-blue-accent));
+  box-shadow: 0 2px 8px rgba(0, 23, 137, 0.2);
+  transition: all 0.2s ease;
+}
+
+.student-profile-icon-btn:hover .student-avatar-micro {
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(0, 23, 137, 0.32);
+}
+
+.student-profile-icon-btn.active .student-avatar-micro {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3), 0 4px 12px rgba(0, 23, 137, 0.25);
 }
 
 .student-avatar-micro {
@@ -312,18 +370,150 @@ button:active:not(:disabled),
   font-weight: 700;
 }
 
+.student-avatar-micro.small {
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+}
+
+/* Detailed Student Profile Dropdown Card */
 .student-select-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  min-width: 295px;
+  width: 320px;
+  max-width: 90vw;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  box-shadow: 0 12px 36px -4px rgba(0, 23, 137, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
-  padding: 0.75rem 0.65rem;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px -4px rgba(0, 23, 137, 0.16), 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 0.85rem;
   z-index: 120;
   animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.student-profile-summary-card {
+  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.student-profile-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  margin-bottom: 0.75rem;
+}
+
+.student-profile-avatar-large {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-navy), var(--brand-blue-accent));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 23, 137, 0.22);
+  flex-shrink: 0;
+}
+
+.student-profile-summary-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.student-profile-summary-name {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.student-profile-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.student-profile-id-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand-navy);
+  background: #dbeafe;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.student-profile-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.student-profile-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.student-profile-field-row .field-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.student-profile-field-row .field-value {
+  color: var(--text-main);
+  font-weight: 700;
+  text-align: right;
+  word-break: break-word;
+}
+
+.student-dropdown-siblings-box {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.student-dropdown-logout-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.student-dropdown-item.logout {
+  color: var(--accent-rose, #ef4444);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.student-dropdown-item.logout:hover {
+  background: #fef2f2;
 }
 
 .student-dropdown-header {
@@ -419,17 +609,7 @@ button:active:not(:disabled),
 
 /* Notification Bell Button */
 .notif-bell-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 50%;
-  color: var(--text-body);
-  transition: all var(--transition-normal);
+  color: #64748b;
 }
 
 .notif-bell-btn:hover {
@@ -1247,8 +1427,119 @@ button:active:not(:disabled),
 }
 
 /* ==========================================================================
-   LOADING INDICATORS & SKELETON ANIMATIONS
+   LOADING INDICATORS & BLOCKING MODAL OVERLAY
    ========================================================================== */
+
+/* Full-Screen Blocking Loading Overlay */
+.blocking-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  pointer-events: all;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.blocking-loading-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 24px 60px -10px rgba(0, 23, 137, 0.25), 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.blocking-loading-spinner-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.blocking-loading-ring {
+  position: absolute;
+  inset: 0;
+  border: 4px solid rgba(0, 23, 137, 0.1);
+  border-top-color: var(--brand-navy);
+  border-right-color: var(--brand-blue-accent);
+  border-radius: 50%;
+  animation: spin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+  will-change: transform;
+}
+
+.blocking-loading-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 10px;
+  animation: pulseLogo 2s ease-in-out infinite;
+}
+
+@keyframes pulseLogo {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+.blocking-loading-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--brand-navy);
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.blocking-loading-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 1.35rem;
+  max-width: 320px;
+}
+
+.blocking-loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.blocking-loading-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+  animation: pulseBadge 1.5s infinite;
+}
 
 .top-sync-banner {
   display: flex;
@@ -2395,6 +2686,27 @@ button:active:not(:disabled),
     width: 32px !important;
   }
 
+  .nav-actions-section {
+    gap: 0.5rem !important;
+  }
+
+  .nav-action-icon-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .student-profile-icon-btn .student-avatar-micro {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .student-select-dropdown {
+    right: -4px !important;
+    width: min(320px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
   /* Desktop center tabs hidden on mobile */
   .desktop-only-nav {
     display: none !important;
@@ -3085,6 +3397,63 @@ button:active:not(:disabled),
   margin: 0;
 }
 
+/* Login Mode Switcher Tabs */
+.login-method-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: var(--radius-full);
+  margin-bottom: 1.4rem;
+  gap: 0.35rem;
+  border: 1px solid #e2e8f0;
+}
+
+.login-method-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.login-method-tab:hover:not(.active) {
+  color: var(--brand-navy);
+}
+
+.login-method-tab.active {
+  background: #ffffff;
+  color: var(--brand-navy);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 23, 137, 0.12);
+}
+
+.login-parent-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+}
+
+.login-field-hint {
+  font-size: 0.76rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
 /* Form */
 .login-form {
   display: flex;
@@ -3253,6 +3622,193 @@ button:active:not(:disabled),
   .login-brand-name {
     font-size: 1.75rem;
   }
+}
+
+/* ==========================================================================
+   STUDENT / CHILD CHOOSER POPUP (Parent Multi-Child Login)
+   ========================================================================== */
+
+.student-chooser-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.25s ease;
+}
+
+.student-chooser-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 25px 60px -15px rgba(0, 23, 137, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.student-chooser-header {
+  text-align: center;
+  margin-bottom: 1.35rem;
+}
+
+.student-chooser-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-full);
+  margin-bottom: 0.85rem;
+}
+
+.student-chooser-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--brand-navy);
+  margin: 0 0 0.45rem;
+}
+
+.student-chooser-subtitle {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.student-chooser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.35rem;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.student-chooser-card {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  padding: 1rem 1.15rem;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+
+.student-chooser-card:hover {
+  background: #ffffff;
+  border-color: var(--brand-navy);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(0, 23, 137, 0.14);
+}
+
+.student-chooser-card:active {
+  transform: scale(0.98);
+}
+
+.chooser-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-navy), var(--brand-blue-accent));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(0, 23, 137, 0.2);
+}
+
+.chooser-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.chooser-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chooser-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.chooser-school {
+  font-size: 0.74rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chooser-arrow-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: var(--brand-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.student-chooser-card:hover .chooser-arrow-wrap {
+  background: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+.student-chooser-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.7rem;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.student-chooser-back-btn:hover {
+  background: #f1f5f9;
+  color: var(--brand-navy);
 }
 
 /* ==========================================================================

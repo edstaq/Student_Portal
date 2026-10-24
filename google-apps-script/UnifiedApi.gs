@@ -748,11 +748,13 @@ function handleSaveSettings(payload) {
  * Student Login Authenticator
  */
 function handleLogin(payload) {
-  var studentId = String(payload.studentId || payload.id || '').trim();
+  var rawIdentifier = String(payload.studentId || payload.id || payload.identifier || payload.mobile || payload.contact || '').trim();
   var password = String(payload.password || '').trim();
+  var loginMethod = String(payload.loginMethod || '').trim().toLowerCase();
+  var selectedStudentId = String(payload.selectedStudentId || '').trim();
 
-  if (!studentId) {
-    return createJsonResponse({ status: 'error', message: 'Please enter your Student ID' }, 400);
+  if (!rawIdentifier && !selectedStudentId) {
+    return createJsonResponse({ status: 'error', message: 'Please enter your Student ID or Contact Number' }, 400);
   }
   if (!password) {
     return createJsonResponse({ status: 'error', message: 'Please enter your Password' }, 400);
@@ -773,23 +775,134 @@ function handleLogin(payload) {
   var colPassword = -1;
   var colName = -1;
   var colContact = -1;
+  var colClass = -1;
+  var colSchool = -1;
 
   for (var c = 0; c < headers.length; c++) {
     var h = cleanKey(headers[c]);
     if (h.indexOf('studentid') !== -1 || h === 'student' || h === 'id') colStudentId = c;
     else if (h.indexOf('password') !== -1 || h === 'pass' || h === 'pwd') colPassword = c;
     else if (h.indexOf('studentname') !== -1 || h === 'name') colName = c;
-    else if (h.indexOf('contact') !== -1 || h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) colContact = c;
+    else if (h.indexOf('contact') !== -1 || h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) {
+      if (colContact === -1 || h.indexOf('contactnumber') !== -1) colContact = c;
+    }
+    else if (h.indexOf('registeredclass') !== -1 || h === 'class' || h === 'grade') colClass = c;
+    else if (h.indexOf('school') !== -1 || h.indexOf('institution') !== -1) colSchool = c;
   }
 
   if (colStudentId === -1) colStudentId = 0;
 
+  // Helper function to check row password
+  function isRowPasswordValid(row, targetIndex) {
+    var storedPassword = colPassword !== -1 ? String(row[colPassword] || '').trim() : '';
+    var studentContact = colContact !== -1 ? String(row[colContact] || '').trim() : '';
+    var cleanContactDigits = studentContact.replace(/\D/g, '');
+
+    if (storedPassword) {
+      return storedPassword === password;
+    }
+    if (password === '12345678' || password === 'edstaq123' || (cleanContactDigits && password === cleanContactDigits.slice(-10))) {
+      // Auto-initialize password in sheet if previously blank
+      if (targetIndex !== undefined && targetIndex >= 0) {
+        if (colPassword === -1) {
+          var newCol = headers.length + 1;
+          studentSheet.getRange(1, newCol).setValue('Password');
+          studentSheet.getRange(targetIndex + 1, newCol).setValue(password);
+          colPassword = headers.length;
+        } else {
+          studentSheet.getRange(targetIndex + 1, colPassword + 1).setValue(password);
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // 1. Direct login for selected child from multiple chooser
+  if (selectedStudentId) {
+    for (var r = 1; r < data.length; r++) {
+      var sId = String(data[r][colStudentId]).trim();
+      if (sId.toLowerCase() === selectedStudentId.toLowerCase()) {
+        if (!isRowPasswordValid(data[r], r)) {
+          return createJsonResponse({ status: 'error', message: 'Authentication expired. Please re-enter password.' }, 401);
+        }
+        var sName = colName !== -1 ? String(data[r][colName] || 'Student').trim() : 'Student';
+        return createJsonResponse({
+          status: 'success',
+          message: 'Login successful',
+          studentId: sId,
+          studentName: sName,
+          token: 'EDSTAQ_' + sId + '_' + Date.now()
+        });
+      }
+    }
+    return createJsonResponse({ status: 'error', message: 'Selected student not found' }, 404);
+  }
+
+  // Determine if logging in with 10-digit Mobile Number
+  var digitsOnly = rawIdentifier.replace(/\D/g, '');
+  var isMobileLogin = loginMethod === 'mobile' || (digitsOnly.length === 10 && !/[a-zA-Z]/.test(rawIdentifier));
+
+  if (isMobileLogin) {
+    var targetPhone10 = digitsOnly.slice(-10);
+    var matchingStudents = [];
+
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      var rowContact = colContact !== -1 ? String(row[colContact] || '').replace(/\D/g, '') : '';
+      if (rowContact.slice(-10) === targetPhone10) {
+        if (isRowPasswordValid(row, r)) {
+          var matchedId = String(row[colStudentId]).trim();
+          var matchedName = colName !== -1 ? String(row[colName] || 'Student').trim() : 'Student';
+          var matchedClass = colClass !== -1 ? String(row[colClass] || 'Class 10').trim() : 'Class 10';
+          var matchedSchool = colSchool !== -1 ? String(row[colSchool] || '').trim() : '';
+
+          matchingStudents.push({
+            studentId: matchedId,
+            studentName: matchedName,
+            registeredClass: matchedClass,
+            school: matchedSchool
+          });
+        } else {
+          return createJsonResponse({ status: 'error', message: 'Incorrect Password for contact ' + targetPhone10 }, 401);
+        }
+      }
+    }
+
+    if (matchingStudents.length === 0) {
+      return createJsonResponse({ status: 'error', message: 'No student found registered with Contact Number: ' + targetPhone10 }, 404);
+    }
+
+    // Multiple children under the same mobile number -> Show chooser
+    if (matchingStudents.length > 1) {
+      return createJsonResponse({
+        status: 'multiple',
+        multiple: true,
+        message: 'Multiple students registered under this contact number',
+        contactNumber: targetPhone10,
+        students: matchingStudents
+      });
+    }
+
+    // Single child -> Direct login
+    var singleStudent = matchingStudents[0];
+    return createJsonResponse({
+      status: 'success',
+      multiple: false,
+      message: 'Login successful',
+      studentId: singleStudent.studentId,
+      studentName: singleStudent.studentName,
+      token: 'EDSTAQ_' + singleStudent.studentId + '_' + Date.now()
+    });
+  }
+
+  // 2. Student ID Login
   var targetRowIndex = -1;
   var matchedRow = null;
 
   for (var r = 1; r < data.length; r++) {
     var sVal = String(data[r][colStudentId]).trim();
-    if (sVal.toLowerCase() === studentId.toLowerCase()) {
+    if (sVal.toLowerCase() === rawIdentifier.toLowerCase()) {
       targetRowIndex = r;
       matchedRow = data[r];
       break;
@@ -800,40 +913,20 @@ function handleLogin(payload) {
     return createJsonResponse({ status: 'error', message: 'Invalid Student ID. Please check and try again.' }, 401);
   }
 
-  var storedPassword = colPassword !== -1 ? String(matchedRow[colPassword] || '').trim() : '';
-  var studentContact = colContact !== -1 ? String(matchedRow[colContact] || '').trim() : '';
-  var studentName = colName !== -1 ? String(matchedRow[colName] || 'Student').trim() : 'Student';
-
-  // Validation logic:
-  // 1. If stored password exists in sheet, compare directly
-  // 2. If stored password is blank, allow contact number OR 'edstaq123' as initial default password
-  var isValid = false;
-  if (storedPassword) {
-    isValid = (storedPassword === password);
-  } else {
-    if (password === '12345678' || (studentContact && password === studentContact)) {
-      isValid = true;
-      // Auto-initialize Password column if missing or empty
-      if (colPassword === -1) {
-        var newCol = headers.length + 1;
-        studentSheet.getRange(1, newCol).setValue('Password');
-        studentSheet.getRange(targetRowIndex + 1, newCol).setValue(password);
-      } else {
-        studentSheet.getRange(targetRowIndex + 1, colPassword + 1).setValue(password);
-      }
-    }
-  }
-
-  if (!isValid) {
+  if (!isRowPasswordValid(matchedRow, targetRowIndex)) {
     return createJsonResponse({ status: 'error', message: 'Incorrect Password. Please try again.' }, 401);
   }
 
+  var studentName = colName !== -1 ? String(matchedRow[colName] || 'Student').trim() : 'Student';
+  var finalStudentId = String(matchedRow[colStudentId]).trim();
+
   return createJsonResponse({
     status: 'success',
+    multiple: false,
     message: 'Login successful',
-    studentId: String(matchedRow[colStudentId]).trim(),
+    studentId: finalStudentId,
     studentName: studentName,
-    token: 'EDSTAQ_' + studentId + '_' + Date.now()
+    token: 'EDSTAQ_' + finalStudentId + '_' + Date.now()
   });
 }
 

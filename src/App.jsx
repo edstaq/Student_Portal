@@ -288,10 +288,10 @@ export default function App() {
   }, []);
 
   // Load student data payload
-  const loadData = useCallback(async (studentId) => {
+  const loadData = useCallback(async (studentId, forceRefresh = false) => {
     setIsLoading(true);
     try {
-      const result = await fetchStudentData(studentId);
+      const result = await fetchStudentData(studentId, forceRefresh);
       if (result) {
         setData(result);
 
@@ -323,6 +323,23 @@ export default function App() {
     }
     return null;
   }, []);
+
+  // Lock body scroll while blocking loading popup is active
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isLoading]);
+
+  // Handle Manual Refresh
+  const handleRefresh = useCallback(() => {
+    loadData(activeStudentId, true);
+  }, [loadData, activeStudentId]);
 
   // Handle Login success
   const handleLoginSuccess = useCallback((session) => {
@@ -464,16 +481,46 @@ export default function App() {
         onOpenNotifications={() => setIsNotifDrawerOpen(true)}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         onLogout={handleLogout}
+        onRefresh={handleRefresh}
+        isRefreshing={isLoading}
       />
+
+      {/* Blocking Full-Screen Loading Popup */}
+      {isLoading && (
+        <div
+          className="blocking-loading-overlay"
+          id="app-blocking-loading-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-live="polite"
+          aria-label="Loading student records"
+        >
+          <div className="blocking-loading-card">
+            <div className="blocking-loading-spinner-wrap">
+              <div className="blocking-loading-ring" />
+              <img
+                src={`${import.meta.env.BASE_URL}edstaq-logo.png`}
+                alt="EDSTAQ Logo"
+                className="blocking-loading-logo"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+            <h3 className="blocking-loading-title">Syncing Student Portal</h3>
+            <p className="blocking-loading-desc">
+              Updating curriculum records, revision timetable & classes...
+            </p>
+            <div className="blocking-loading-badge">
+              <span className="blocking-loading-pulse-dot" />
+              <span>Please wait • Live Sync in Progress</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="main-content" id="edstaq-main-content">
-        {isLoading && (
-          <div className="top-sync-banner" id="app-top-sync-banner">
-            <span className="sync-spinner" />
-            <span>Syncing latest curriculum records...</span>
-          </div>
-        )}
 
         {currentTab === 'dashboard' && (
           <Dashboard

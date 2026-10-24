@@ -2,17 +2,24 @@
 // Premium glassmorphism login with Student ID + Password auth
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Shield, Key, X, CheckCircle } from 'lucide-react';
-import { login, changePassword } from '../services/authService';
+import { Eye, EyeOff, LogIn, Shield, Key, X, CheckCircle, Phone, User, Users, ArrowRight, ArrowLeft } from 'lucide-react';
+import { login, changePassword, selectChildSession } from '../services/authService';
 
 const DEFAULT_PASSWORD = '12345678';
 
 export default function Login({ onLoginSuccess }) {
+  const [loginMethod, setLoginMethod] = useState('studentId'); // 'studentId' | 'mobile'
   const [studentId, setStudentId] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Multiple Children Chooser State (for Parents)
+  const [showStudentChooser, setShowStudentChooser] = useState(false);
+  const [studentCandidates, setStudentCandidates] = useState([]);
+  const [contactNumber, setContactNumber] = useState('');
 
   // Change Password Popup State
   const [showChangePopup, setShowChangePopup] = useState(false);
@@ -29,20 +36,47 @@ export default function Login({ onLoginSuccess }) {
     setError('');
     setIsLoading(true);
 
-    const result = await login(studentId.trim(), password.trim());
+    const identifier = loginMethod === 'mobile' ? mobileNumber.trim() : studentId.trim();
+
+    if (loginMethod === 'mobile' && identifier.length !== 10) {
+      setError('Please enter a valid 10-digit registered contact number.');
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await login(identifier, password.trim(), { loginMethod });
 
     if (result.success) {
-      // If password is the default, prompt for change
-      if (password.trim() === DEFAULT_PASSWORD) {
-        setPendingSession(result.session);
-        setShowChangePopup(true);
+      // Multiple students under this mobile number -> Show child chooser dialog
+      if (result.multiple) {
+        setStudentCandidates(result.students || []);
+        setContactNumber(result.contactNumber || identifier);
+        setShowStudentChooser(true);
       } else {
-        onLoginSuccess(result.session);
+        // If password is the default, prompt for change
+        if (password.trim() === DEFAULT_PASSWORD) {
+          setPendingSession(result.session);
+          setShowChangePopup(true);
+        } else {
+          onLoginSuccess(result.session);
+        }
       }
     } else {
-      setError(result.message || 'Login failed. Please try again.');
+      setError(result.message || 'Login failed. Please check credentials and try again.');
     }
     setIsLoading(false);
+  };
+
+  const handleSelectChild = (child) => {
+    const session = selectChildSession(child, contactNumber);
+    setShowStudentChooser(false);
+
+    if (password.trim() === DEFAULT_PASSWORD) {
+      setPendingSession(session);
+      setShowChangePopup(true);
+    } else {
+      onLoginSuccess(session);
+    }
   };
 
   const handleSkipChange = () => {
@@ -115,27 +149,93 @@ export default function Login({ onLoginSuccess }) {
             <p className="login-subtitle">Sign in to access your learning dashboard</p>
           </div>
 
+          {/* Login Mode Switcher Tabs */}
+          <div className="login-method-tabs" role="tablist" aria-label="Login Mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={loginMethod === 'studentId'}
+              className={`login-method-tab ${loginMethod === 'studentId' ? 'active' : ''}`}
+              id="login-tab-student-id"
+              onClick={() => {
+                setLoginMethod('studentId');
+                setError('');
+              }}
+            >
+              <User size={15} />
+              <span>Student ID</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={loginMethod === 'mobile'}
+              className={`login-method-tab ${loginMethod === 'mobile' ? 'active' : ''}`}
+              id="login-tab-mobile"
+              onClick={() => {
+                setLoginMethod('mobile');
+                setError('');
+              }}
+            >
+              <Phone size={15} />
+              <span>Mobile Number</span>
+            </button>
+          </div>
+
           <form className="login-form" onSubmit={handleSubmit} id="login-form-main" autoComplete="off">
-            {/* Student ID Field */}
-            <div className="login-field">
-              <label className="login-label" htmlFor="login-student-id">
-                Student ID
-              </label>
-              <div className="login-input-wrap">
-                <Shield size={16} className="login-input-icon" />
-                <input
-                  id="login-student-id"
-                  type="text"
-                  className="login-input"
-                  placeholder="e.g. STD101"
-                  value={studentId}
-                  onChange={(e) => { setStudentId(e.target.value); setError(''); }}
-                  required
-                  autoFocus
-                  autoCapitalize="characters"
-                />
+            {/* Conditional Input Field: Student ID vs Contact Number (Mobile) */}
+            {loginMethod === 'studentId' ? (
+              <div className="login-field">
+                <label className="login-label" htmlFor="login-student-id">
+                  Student ID
+                </label>
+                <div className="login-input-wrap">
+                  <Shield size={16} className="login-input-icon" />
+                  <input
+                    id="login-student-id"
+                    type="text"
+                    className="login-input"
+                    placeholder="e.g. STD101"
+                    value={studentId}
+                    onChange={(e) => { setStudentId(e.target.value); setError(''); }}
+                    required
+                    autoFocus
+                    autoCapitalize="characters"
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="login-field">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="login-label" htmlFor="login-mobile-number">
+                    Contact Number (Mobile)
+                  </label>
+                  <span className="login-parent-badge">Parents / Guardians</span>
+                </div>
+                <div className="login-input-wrap">
+                  <Phone size={16} className="login-input-icon" />
+                  <input
+                    id="login-mobile-number"
+                    type="tel"
+                    className="login-input"
+                    placeholder="10-digit mobile number (e.g. 9526859832)"
+                    value={mobileNumber}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setMobileNumber(val);
+                      setError('');
+                    }}
+                    required
+                    autoFocus
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    title="10-digit registered Contact Number"
+                  />
+                </div>
+                <span className="login-field-hint">
+                  Access portal for single or multiple children under this contact
+                </span>
+              </div>
+            )}
 
             {/* Password Field */}
             <div className="login-field">
@@ -192,6 +292,16 @@ export default function Login({ onLoginSuccess }) {
                 </>
               )}
             </button>
+
+            {/* Demo Credential Hint */}
+            <div className="login-demo-hint">
+              <span className="login-demo-label">Demo Credentials:</span>
+              <span>ID: <strong>STD101</strong></span>
+              <span>•</span>
+              <span>Mobile: <strong>9526859832</strong></span>
+              <span>•</span>
+              <span>Pwd: <strong>12345678</strong></span>
+            </div>
           </form>
         </div>
 
@@ -200,6 +310,70 @@ export default function Login({ onLoginSuccess }) {
           Powered by <b>EDSTAQ</b> · Secure Student Learning Platform
         </p>
       </div>
+
+      {/* ── Choose Student / Child Modal (for Parents with Multiple Registered Students) ── */}
+      {showStudentChooser && (
+        <div
+          className="student-chooser-overlay"
+          id="student-chooser-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Select student account"
+        >
+          <div className="student-chooser-modal">
+            <div className="student-chooser-header">
+              <div className="student-chooser-badge">
+                <Users size={16} />
+                <span>Parent Account Access</span>
+              </div>
+              <h2 className="student-chooser-title">Choose Student</h2>
+              <p className="student-chooser-subtitle">
+                Multiple students are registered under Contact Number <strong>{contactNumber}</strong>. Select which student's portal to access:
+              </p>
+            </div>
+
+            <div className="student-chooser-list">
+              {studentCandidates.map((child) => (
+                <button
+                  key={child.studentId}
+                  type="button"
+                  className="student-chooser-card"
+                  onClick={() => handleSelectChild(child)}
+                  id={`choose-student-${child.studentId}`}
+                >
+                  <div className="chooser-avatar">
+                    {child.studentName ? child.studentName.charAt(0).toUpperCase() : 'S'}
+                  </div>
+                  <div className="chooser-info">
+                    <span className="chooser-name">{child.studentName}</span>
+                    <span className="chooser-meta">
+                      {child.registeredClass || 'Class 10'} • ID: <strong>{child.studentId}</strong>
+                    </span>
+                    {child.school && (
+                      <span className="chooser-school">{child.school}</span>
+                    )}
+                  </div>
+                  <div className="chooser-arrow-wrap">
+                    <ArrowRight size={18} />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="student-chooser-back-btn"
+              onClick={() => {
+                setShowStudentChooser(false);
+                setStudentCandidates([]);
+              }}
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Login</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Change Password Popup ── */}
       {showChangePopup && (

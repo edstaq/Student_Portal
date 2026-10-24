@@ -8,11 +8,10 @@ import {
   FileBarChart2,
   Settings,
   Bell,
-  ChevronDown,
   User,
-  Radio,
   Smartphone,
-  LogOut
+  LogOut,
+  RotateCw
 } from 'lucide-react';
 
 export default function Navbar({
@@ -25,7 +24,9 @@ export default function Navbar({
   isLiveMode = false,
   onOpenNotifications,
   onOpenInstallModal,
-  onLogout
+  onLogout,
+  onRefresh,
+  isRefreshing = false
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -152,9 +153,8 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Right Section: Mode Badge, Student Switcher, Notification Bell */}
+          {/* Right Section: Refresh Button, Notification Bell, User Profile Icon */}
           <div className="nav-actions-section">
-
 
           {/* Quick Install Mobile App Button */}
           <button
@@ -168,146 +168,25 @@ export default function Navbar({
             <span>Install App</span>
           </button>
 
-          {/* Student Switcher Dropdown */}
-          <div className="student-switcher-container" ref={dropdownRef}>
+          {/* Refresh Data Button */}
+          {onRefresh && (
             <button
               type="button"
-              className="student-select-btn"
-              id="nav-student-select-btn"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              aria-expanded={dropdownOpen}
-              aria-haspopup="true"
+              className={`nav-action-icon-btn nav-refresh-btn ${isRefreshing ? 'is-spinning' : ''}`}
+              id="nav-btn-refresh-data"
+              onClick={onRefresh}
+              title={isRefreshing ? 'Refreshing student records...' : 'Refresh latest student records'}
+              aria-label="Refresh student data"
+              disabled={isRefreshing}
             >
-              <div className="student-avatar-micro">
-                {activeStudent?.studentName ? activeStudent.studentName.charAt(0) : 'S'}
-              </div>
-              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {activeStudent?.studentName || 'Student'}
-              </span>
-              <ChevronDown size={14} color="#64748b" />
+              <RotateCw size={17} className={isRefreshing ? 'refresh-rotate-anim' : ''} />
             </button>
-
-            {dropdownOpen && (
-              <div className="student-select-dropdown" id="nav-student-dropdown">
-                <div className="student-dropdown-header">
-                  ACTIVE STUDENT
-                </div>
-
-                {/* Active student — always first */}
-                {activeStudent && (
-                  <button
-                    type="button"
-                    className="student-dropdown-item active"
-                    id={`student-opt-${activeStudent.studentId}`}
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    <div className="student-item-left">
-                      <div className="student-item-indicator" />
-                      <div className="student-item-info">
-                        <span className="student-item-name">{activeStudent.studentName}</span>
-                        <span className="student-item-meta">
-                          {activeStudent.registeredClass} • {activeStudent.studentId}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="student-status-badge active">
-                      {activeStudent.status || 'Active'}
-                    </span>
-                  </button>
-                )}
-
-                {/* Sibling students — same guardian contact, different ID (even if active or not) */}
-                {studentsList
-                  .filter((s) => s.studentId !== activeStudent?.studentId)
-                  .map((s, idx, arr) => {
-                    const isStudentActive = String(s.status || 'Active').toLowerCase() === 'active';
-                    return (
-                      <React.Fragment key={s.studentId}>
-                        {idx === 0 && (
-                          <div
-                            className="student-dropdown-header"
-                            style={{
-                              marginTop: '0.65rem',
-                              paddingTop: '0.5rem',
-                              borderTop: '1px solid #f1f5f9'
-                            }}
-                          >
-                            OTHER STUDENTS
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className="student-dropdown-item"
-                          id={`student-opt-${s.studentId}`}
-                          onClick={() => {
-                            if (onSelectStudent) onSelectStudent(s.studentId);
-                            setDropdownOpen(false);
-                          }}
-                        >
-                          <div className="student-item-left">
-                            <div className="student-item-indicator" />
-                            <div className="student-item-info">
-                              <span className="student-item-name">{s.studentName}</span>
-                              <span className="student-item-meta">
-                                {s.registeredClass} • {s.studentId}
-                              </span>
-                            </div>
-                          </div>
-                          <span
-                            className={`student-status-badge ${isStudentActive ? 'active' : 'inactive'}`}
-                          >
-                            {s.status || (isStudentActive ? 'Active' : 'Inactive')}
-                          </span>
-                        </button>
-                      </React.Fragment>
-                    );
-                  })}
-
-                {/* Log Out Option inside Profile Dropdown */}
-                {onLogout && (
-                  <div
-                    style={{
-                      marginTop: '0.65rem',
-                      paddingTop: '0.5rem',
-                      borderTop: '1px solid #f1f5f9'
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="student-dropdown-item logout"
-                      id="student-dropdown-logout-btn"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        onLogout();
-                      }}
-                      style={{
-                        color: 'var(--accent-rose, #ef4444)',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.65rem',
-                        width: '100%',
-                        padding: '0.55rem 0.65rem',
-                        borderRadius: '8px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <LogOut size={16} color="#ef4444" />
-                      <span>Log Out</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Notification Bell Icon */}
           <button
             type="button"
-            className="notif-bell-btn"
+            className="nav-action-icon-btn notif-bell-btn"
             id="nav-notification-bell"
             onClick={onOpenNotifications}
             aria-label="Open revisions and alerts"
@@ -320,6 +199,152 @@ export default function Navbar({
               </span>
             )}
           </button>
+
+          {/* Icon-Only Student Profile Trigger & Rich Details Dropdown */}
+          <div className="student-switcher-container" ref={dropdownRef}>
+            <button
+              type="button"
+              className={`nav-action-icon-btn student-profile-icon-btn ${dropdownOpen ? 'active' : ''}`}
+              id="nav-student-profile-btn"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              aria-expanded={dropdownOpen}
+              aria-haspopup="true"
+              title={activeStudent?.studentName ? `${activeStudent.studentName} (${activeStudent.studentId || 'ID'}) - View Details` : 'Student Profile'}
+              aria-label="Open student profile details"
+            >
+              <div className="student-avatar-micro">
+                {activeStudent?.studentName ? activeStudent.studentName.trim().charAt(0).toUpperCase() : <User size={16} />}
+              </div>
+            </button>
+
+            {dropdownOpen && (
+              <div className="student-select-dropdown" id="nav-student-dropdown">
+                {/* Active Student Full Details Card */}
+                <div className="student-profile-summary-card">
+                  <div className="student-profile-summary-header">
+                    <div className="student-profile-avatar-large">
+                      {activeStudent?.studentName ? activeStudent.studentName.trim().charAt(0).toUpperCase() : 'S'}
+                    </div>
+                    <div className="student-profile-summary-info">
+                      <h4 className="student-profile-summary-name" title={activeStudent?.studentName}>
+                        {activeStudent?.studentName || 'Student Name'}
+                      </h4>
+                      <div className="student-profile-pills-row">
+                        <span className="student-profile-id-tag">
+                          ID: {activeStudent?.studentId || 'STD101'}
+                        </span>
+                        <span className="student-status-badge active">
+                          {activeStudent?.status || 'Active'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="student-profile-fields-list">
+                    <div className="student-profile-field-row">
+                      <span className="field-label">Class & Board</span>
+                      <span className="field-value">
+                        {activeStudent?.registeredClass || 'Class 10'} • {activeStudent?.board || 'CBSE'}
+                      </span>
+                    </div>
+
+                    {activeStudent?.school && (
+                      <div className="student-profile-field-row">
+                        <span className="field-label">Institution</span>
+                        <span className="field-value">{activeStudent.school}</span>
+                      </div>
+                    )}
+
+                    {(activeStudent?.guardianName || activeStudent?.guardianContact) && (
+                      <div className="student-profile-field-row">
+                        <span className="field-label">Guardian</span>
+                        <span className="field-value">
+                          {activeStudent?.guardianName || 'Guardian'}
+                          {activeStudent?.guardianRelation ? ` (${activeStudent.guardianRelation})` : ''}
+                          {activeStudent?.guardianContact ? ` • ${activeStudent.guardianContact}` : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {activeStudent?.contact && (
+                      <div className="student-profile-field-row">
+                        <span className="field-label">Student Contact</span>
+                        <span className="field-value">{activeStudent.contact}</span>
+                      </div>
+                    )}
+
+                    {activeStudent?.email && (
+                      <div className="student-profile-field-row">
+                        <span className="field-label">Email</span>
+                        <span className="field-value">{activeStudent.email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sibling students — switch student if multiple registered under same contact */}
+                {studentsList.filter((s) => s.studentId !== activeStudent?.studentId).length > 0 && (
+                  <div className="student-dropdown-siblings-box">
+                    <div className="student-dropdown-header">
+                      SWITCH STUDENT / SIBLING
+                    </div>
+                    {studentsList
+                      .filter((s) => s.studentId !== activeStudent?.studentId)
+                      .map((s) => {
+                        const isStudentActive = String(s.status || 'Active').toLowerCase() === 'active';
+                        return (
+                          <button
+                            key={s.studentId}
+                            type="button"
+                            className="student-dropdown-item"
+                            id={`student-opt-${s.studentId}`}
+                            onClick={() => {
+                              if (onSelectStudent) onSelectStudent(s.studentId);
+                              setDropdownOpen(false);
+                            }}
+                          >
+                            <div className="student-item-left">
+                              <div className="student-avatar-micro small">
+                                {s.studentName ? s.studentName.trim().charAt(0).toUpperCase() : 'S'}
+                              </div>
+                              <div className="student-item-info">
+                                <span className="student-item-name">{s.studentName}</span>
+                                <span className="student-item-meta">
+                                  {s.registeredClass} • {s.studentId}
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`student-status-badge ${isStudentActive ? 'active' : 'inactive'}`}
+                            >
+                              {s.status || (isStudentActive ? 'Active' : 'Inactive')}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {/* Log Out Option inside Profile Dropdown */}
+                {onLogout && (
+                  <div className="student-dropdown-logout-section">
+                    <button
+                      type="button"
+                      className="student-dropdown-item logout"
+                      id="student-dropdown-logout-btn"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        onLogout();
+                      }}
+                    >
+                      <LogOut size={16} color="#ef4444" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
