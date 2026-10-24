@@ -292,16 +292,6 @@ export default function Login({ onLoginSuccess }) {
                 </>
               )}
             </button>
-
-            {/* Demo Credential Hint */}
-            <div className="login-demo-hint">
-              <span className="login-demo-label">Demo Credentials:</span>
-              <span>ID: <strong>STD101</strong></span>
-              <span>•</span>
-              <span>Mobile: <strong>9526859832</strong></span>
-              <span>•</span>
-              <span>Pwd: <strong>12345678</strong></span>
-            </div>
           </form>
         </div>
 
