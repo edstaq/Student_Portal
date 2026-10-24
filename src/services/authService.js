@@ -167,10 +167,11 @@ export async function login(identifier, password, { loginMethod = 'studentId', s
             loggedInAt: Date.now()
           };
           saveAuthSession(session);
+          return { success: true, multiple: false, session };
         } else if (json && json.message && !json.message.includes('Unknown')) {
-          // If user attempted mobile login but deployed backend only knows Student ID, fall through to mobile resolver
-          if (isMobile && (json.message.toLowerCase().includes('student id') || json.message.toLowerCase().includes('studentid'))) {
-            console.warn('Live API requires Student ID (mobile handler not yet deployed). Falling through to mobile resolver.');
+          if (isMobile) {
+            console.warn('Live API response for mobile login, validating across all registered children:', json.message);
+            // Fall through to verify each sibling registered under this mobile contact
           } else {
             return { success: false, message: json.message };
           }

@@ -775,15 +775,19 @@ function handleLogin(payload) {
   var colPassword = -1;
   var colName = -1;
   var colContact = -1;
+  var colGuardianContact = -1;
   var colClass = -1;
   var colSchool = -1;
 
   for (var c = 0; c < headers.length; c++) {
     var h = cleanKey(headers[c]);
     if (h.indexOf('studentid') !== -1 || h === 'student' || h === 'id') colStudentId = c;
-    else if (h.indexOf('password') !== -1 || h === 'pass' || h === 'pwd') colPassword = c;
+    else if (h === 'password' || h === 'studentpassword' || h === 'pwd' || h.indexOf('password') !== -1) colPassword = c;
     else if (h.indexOf('studentname') !== -1 || h === 'name') colName = c;
-    else if (h.indexOf('contact') !== -1 || h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) {
+    else if (h.indexOf('guardiancontact') !== -1 || h.indexOf('parentcontact') !== -1 || h.indexOf('guardianmobile') !== -1) {
+      colGuardianContact = c;
+    }
+    else if (h.indexOf('contactnumber') !== -1 || h.indexOf('contact') !== -1 || h.indexOf('mobile') !== -1 || h.indexOf('phone') !== -1) {
       if (colContact === -1 || h.indexOf('contactnumber') !== -1) colContact = c;
     }
     else if (h.indexOf('registeredclass') !== -1 || h === 'class' || h === 'grade') colClass = c;
@@ -796,21 +800,29 @@ function handleLogin(payload) {
   function isRowPasswordValid(row, targetIndex) {
     var storedPassword = colPassword !== -1 ? String(row[colPassword] || '').trim() : '';
     var studentContact = colContact !== -1 ? String(row[colContact] || '').trim() : '';
+    var guardianContact = colGuardianContact !== -1 ? String(row[colGuardianContact] || '').trim() : '';
     var cleanContactDigits = studentContact.replace(/\D/g, '');
+    var cleanGuardianDigits = guardianContact.replace(/\D/g, '');
 
     if (storedPassword) {
       return storedPassword === password;
     }
-    if (password === '12345678' || password === 'edstaq123' || (cleanContactDigits && password === cleanContactDigits.slice(-10))) {
+    if (password === '12345678' || password === 'edstaq123' || 
+        (cleanContactDigits && cleanContactDigits.length >= 7 && password === cleanContactDigits.slice(-10)) ||
+        (cleanGuardianDigits && cleanGuardianDigits.length >= 7 && password === cleanGuardianDigits.slice(-10))) {
       // Auto-initialize password in sheet if previously blank
       if (targetIndex !== undefined && targetIndex >= 0) {
-        if (colPassword === -1) {
-          var newCol = headers.length + 1;
-          studentSheet.getRange(1, newCol).setValue('Password');
-          studentSheet.getRange(targetIndex + 1, newCol).setValue(password);
-          colPassword = headers.length;
-        } else {
-          studentSheet.getRange(targetIndex + 1, colPassword + 1).setValue(password);
+        try {
+          if (colPassword === -1) {
+            var newCol = headers.length + 1;
+            studentSheet.getRange(1, newCol).setValue('Password');
+            studentSheet.getRange(targetIndex + 1, newCol).setValue(password);
+            colPassword = headers.length;
+          } else {
+            studentSheet.getRange(targetIndex + 1, colPassword + 1).setValue(password);
+          }
+        } catch (persistErr) {
+          Logger.log('Could not persist initial password to sheet: ' + persistErr);
         }
       }
       return true;
@@ -845,47 +857,60 @@ function handleLogin(payload) {
 
   if (isMobileLogin) {
     var targetPhone10 = digitsOnly.slice(-10);
-    var matchingStudents = [];
+    var studentsUnderContact = [];
+    var matchingStudentsWithValidPassword = [];
 
     for (var r = 1; r < data.length; r++) {
       var row = data[r];
       var rowContact = colContact !== -1 ? String(row[colContact] || '').replace(/\D/g, '') : '';
-      if (rowContact.slice(-10) === targetPhone10) {
-        if (isRowPasswordValid(row, r)) {
-          var matchedId = String(row[colStudentId]).trim();
-          var matchedName = colName !== -1 ? String(row[colName] || 'Student').trim() : 'Student';
-          var matchedClass = colClass !== -1 ? String(row[colClass] || 'Class 10').trim() : 'Class 10';
-          var matchedSchool = colSchool !== -1 ? String(row[colSchool] || '').trim() : '';
+      var rowGContact = colGuardianContact !== -1 ? String(row[colGuardianContact] || '').replace(/\D/g, '') : '';
 
-          matchingStudents.push({
-            studentId: matchedId,
-            studentName: matchedName,
-            registeredClass: matchedClass,
-            school: matchedSchool
-          });
-        } else {
-          return createJsonResponse({ status: 'error', message: 'Incorrect Password for contact ' + targetPhone10 }, 401);
+      var isContactMatch = (rowContact.length >= 7 && rowContact.slice(-10) === targetPhone10) ||
+                           (rowGContact.length >= 7 && rowGContact.slice(-10) === targetPhone10);
+
+      if (isContactMatch) {
+        var matchedId = String(row[colStudentId]).trim();
+        var matchedName = colName !== -1 ? String(row[colName] || 'Student').trim() : 'Student';
+        var matchedClass = colClass !== -1 ? String(row[colClass] || 'Class 10').trim() : 'Class 10';
+        var matchedSchool = colSchool !== -1 ? String(row[colSchool] || '').trim() : '';
+
+        var studentEntry = {
+          studentId: matchedId,
+          studentName: matchedName,
+          registeredClass: matchedClass,
+          school: matchedSchool
+        };
+
+        studentsUnderContact.push(studentEntry);
+
+        // Check password for this student. If Student A's password doesn't match, continue checking Student B!
+        if (isRowPasswordValid(row, r)) {
+          matchingStudentsWithValidPassword.push(studentEntry);
         }
       }
     }
 
-    if (matchingStudents.length === 0) {
+    if (studentsUnderContact.length === 0) {
       return createJsonResponse({ status: 'error', message: 'No student found registered with Contact Number: ' + targetPhone10 }, 404);
     }
 
-    // Multiple children under the same mobile number -> Show chooser
-    if (matchingStudents.length > 1) {
+    if (matchingStudentsWithValidPassword.length === 0) {
+      return createJsonResponse({ status: 'error', message: 'Incorrect Password for contact ' + targetPhone10 }, 401);
+    }
+
+    // Multiple children under the same mobile number matched this password -> Show chooser
+    if (matchingStudentsWithValidPassword.length > 1) {
       return createJsonResponse({
         status: 'multiple',
         multiple: true,
         message: 'Multiple students registered under this contact number',
         contactNumber: targetPhone10,
-        students: matchingStudents
+        students: matchingStudentsWithValidPassword
       });
     }
 
-    // Single child -> Direct login
-    var singleStudent = matchingStudents[0];
+    // Exactly one child matched this password -> Direct login
+    var singleStudent = matchingStudentsWithValidPassword[0];
     return createJsonResponse({
       status: 'success',
       multiple: false,
